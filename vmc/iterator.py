@@ -34,15 +34,13 @@ class MCBlock:
             # check = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
 
             wf.reset_gattr()  # reset gradients before calling backward
-            wf.logprob(spin_vector).backward()
+            wf.logprob(spin_vector).real.backward()
             self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))
+            # the following lines evaluate d/dx wf(x + iy), matching the definitions of Ob, Oc, and OW
+            if torch.is_complex(spin_vector):
+                wf.reset_gattr()  # reset gradients before calling backward
+                wf.logprob(spin_vector).imag.backward()
+                self.OK[n, :] -= torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))*1j
 
-            # wf.reset_gattr()  # reset gradients before calling backward
-            # wf.prob_(spin_vector).real.backward()
-            # self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten())) / wf.prob(spin_vector)
-
-            # wf.reset_gattr()  # reset gradients before calling backward
-            # wf.prob_(spin_vector).imag.backward()
-            # self.OK[n, :] -= torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))*1j / wf.prob(spin_vector)
-
-            # ic(torch.norm(self.OK[n, :] - check))
+                self.OK[n, :] = self.OK[n, :].conj() / 2
+                # ic(torch.norm(self.OK[n, :] - check))

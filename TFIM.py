@@ -20,7 +20,7 @@ def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
 if __name__ == "__main__":
     device = "cpu"
     dtype = torch.double
-    # dtype = torch.cfloat
+    # dtype = torch.complex128
 
     print(torch.__version__)
 
