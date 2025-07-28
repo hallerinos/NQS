@@ -22,7 +22,9 @@ class RBM:
     def update_params(self, all_params):
         b = all_params[: self.n_spins]
         c = all_params[self.n_spins : self.n_spins + self.n_hidden]
-        W = torch.reshape(all_params[self.n_spins + self.n_hidden :], (self.n_hidden, self.n_spins))
+        W = torch.reshape(
+            all_params[self.n_spins + self.n_hidden :], (self.n_hidden, self.n_spins)
+        )
 
         with torch.no_grad():
             self.b += b
@@ -55,13 +57,17 @@ class RBM:
         return torch.exp(self.b @ x) * torch.prod(2 * torch.cosh(self.c + self.W @ x))
 
     def prob_(self, x):
-        return torch.exp(self.b.conj() @ x) * torch.prod(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
+        return torch.exp(self.b.conj() @ x) * torch.prod(
+            2 * torch.cosh(self.c.conj() + self.W.conj() @ x)
+        )
 
     def logprob(self, x):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
-    
+
     def logprob_(self, x):
-        return self.b.conj() @ x + torch.sum(torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x)))
+        return self.b.conj() @ x + torch.sum(
+            torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
+        )
 
     def probratio(self, x_nom, x_denom):
         f_nom = torch.cosh(self.c + self.W @ x_nom)

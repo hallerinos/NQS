@@ -3,15 +3,18 @@ from sampler.mcmc import draw_next
 from tqdm import trange
 from icecream import ic
 
+
 class MCBlock:
-    def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y:1):
+    def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y: 1):
         self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
-        self.samples = torch.zeros(n_block, wf.n_spins, dtype=wf.dtype, device=wf.device)
+        self.samples = torch.zeros(
+            n_block, wf.n_spins, dtype=wf.dtype, device=wf.device
+        )
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
         self.sample_block(wf, n_block, verbose)
 
-    def sample_block(self, wf, n_block, verbose, n_dismiss = -10):
+    def sample_block(self, wf, n_block, verbose, n_dismiss=-10):
         spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device) - 1
         spin_vector = spin_vector.to(wf.dtype)
         for n in range(n_dismiss):
@@ -37,7 +40,7 @@ class MCBlock:
             # wf.reset_gattr()  # reset gradients before calling backward
             # wf.prob_(spin_vector).real.backward()
             # self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten())) / wf.prob(spin_vector)
-            
+
             # wf.reset_gattr()  # reset gradients before calling backward
             # wf.prob_(spin_vector).imag.backward()
             # self.OK[n, :] -= torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))*1j / wf.prob(spin_vector)

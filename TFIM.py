@@ -3,6 +3,7 @@ from ansatz.RBM import RBM
 from tqdm import trange
 from vmc.iterator import MCBlock
 
+
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
     interactions = spin_vector[1:] @ spin_vector[:-1]
     interactions += spin_vector[0] * spin_vector[-1]  # pbc
@@ -17,7 +18,7 @@ def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
 
 
 if __name__ == "__main__":
-    device = 'cpu'
+    device = "cpu"
     dtype = torch.double
     # dtype = torch.cfloat
 
@@ -44,11 +45,21 @@ if __name__ == "__main__":
         epsbar = (block.EL - Eav) / n_block**0.5
         T = Okbar @ Okbar.adjoint()
 
-        deltaTheta = -eta * Okbar.adjoint() @ torch.pinverse(T + 1e-6*torch.eye(T.shape[0], dtype=T.dtype, device=T.device), rcond=1e-6) @ epsbar
+        deltaTheta = (
+            -eta
+            * Okbar.adjoint()
+            @ torch.pinverse(
+                T + 1e-6 * torch.eye(T.shape[0], dtype=T.dtype, device=T.device),
+                rcond=1e-6,
+            )
+            @ epsbar
+        )
 
         wf.update_params(deltaTheta)
 
         E_var = torch.conj(epsbar) @ epsbar
         Eavs[epoch] = Eav
         eta /= 2 if (epoch % 50 == 0) and epoch > 0 else 1
-        epochbar.set_description(f"Epoch {epoch}, Average energy {Eav.detach()}, Energy variance {E_var.detach()}, eta {eta}")
+        epochbar.set_description(
+            f"Epoch {epoch}, Average energy {Eav.detach()}, Energy variance {E_var.detach()}, eta {eta}"
+        )
