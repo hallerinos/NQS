@@ -1,6 +1,6 @@
 import torch
-from ansatz.RBM import RBM
 from tqdm import trange
+from ansatz.RBM import RBM
 from vmc.iterator import MCBlock
 
 
