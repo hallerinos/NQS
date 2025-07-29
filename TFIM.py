@@ -2,6 +2,7 @@ import torch
 from tqdm import trange
 from ansatz.RBM import RBM
 from vmc.iterator import MCBlock
+from icecream import ic
 
 @torch.compile(fullgraph=True)
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
@@ -18,7 +19,7 @@ def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
 
 
 if __name__ == "__main__":
-    device = "cpu"
+    device = "cuda"
     dtype = torch.double
     # dtype = torch.complex128
 
@@ -31,12 +32,12 @@ if __name__ == "__main__":
     eta = 0.1  # learning rate
 
     wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
+    ic(wf.n_param)
 
     epochbar = trange(n_epoch)
     Eavs = torch.zeros(n_epoch, dtype=dtype)
-    block = MCBlock(wf, n_block, local_energy=local_energy, verbose=0)
     for epoch in epochbar:
-        block.sample_block(wf, n_block)
+        block = MCBlock(wf, n_block, local_energy=local_energy, verbose=0)  # this suffers from a memory leak
 
         Eav = torch.mean(block.EL, dim=0)
         Okm = torch.mean(block.OK, dim=0)
@@ -59,7 +60,7 @@ if __name__ == "__main__":
         wf.update_params(deltaTheta)
 
         E_var = torch.conj(epsbar) @ epsbar
-        Eavs[epoch] = Eav
+        # Eavs[epoch] = Eav  # for some reason, this causes a memory leak...
         eta /= 2 if (epoch % 50 == 0) and epoch > 0 else 1
         epochbar.set_description(
             f"Epoch {epoch}, Average energy {Eav.detach()}, Energy variance {E_var.detach()}, eta {eta}"
