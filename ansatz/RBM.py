@@ -19,6 +19,7 @@ class RBM:
         self.c = (c).detach().clone().requires_grad_()
         self.W = (W).detach().clone().requires_grad_()
 
+    @torch.compile(fullgraph=True)
     def update_params(self, all_params):
         b = all_params[: self.n_spins]
         c = all_params[self.n_spins : self.n_spins + self.n_hidden]
@@ -38,11 +39,13 @@ class RBM:
             self.c.grad = None
             self.W.grad = None
 
+    @torch.compile(fullgraph=True)
     def reset_gattr(self):
         self.b.grad = None
         self.c.grad = None
         self.W.grad = None
 
+    @torch.compile(fullgraph=True)
     def assign_derivatives(self, x):
         theta = self.c + self.W @ x
         Ob = x
@@ -53,22 +56,27 @@ class RBM:
         self.Oc = Oc
         self.OW = OW
 
+    @torch.compile(fullgraph=True)
     def prob(self, x):
         return torch.exp(self.b @ x) * torch.prod(2 * torch.cosh(self.c + self.W @ x))
 
+    @torch.compile(fullgraph=True)
     def prob_(self, x):
         return torch.exp(self.b.conj() @ x) * torch.prod(
             2 * torch.cosh(self.c.conj() + self.W.conj() @ x)
         )
 
+    @torch.compile(fullgraph=True)
     def logprob(self, x):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
 
+    @torch.compile(fullgraph=True)
     def logprob_(self, x):
         return self.b.conj() @ x + torch.sum(
             torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
         )
 
+    @torch.compile(fullgraph=True)
     def probratio(self, x_nom, x_denom):
         f_nom = torch.cosh(self.c + self.W @ x_nom)
         f_denom = torch.cosh(self.c + self.W @ x_denom)

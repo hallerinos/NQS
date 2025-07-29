@@ -3,7 +3,7 @@ from tqdm import trange
 from ansatz.RBM import RBM
 from vmc.iterator import MCBlock
 
-
+@torch.compile(fullgraph=True)
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
     interactions = spin_vector[1:] @ spin_vector[:-1]
     interactions += spin_vector[0] * spin_vector[-1]  # pbc
@@ -34,8 +34,9 @@ if __name__ == "__main__":
 
     epochbar = trange(n_epoch)
     Eavs = torch.zeros(n_epoch, dtype=dtype)
+    block = MCBlock(wf, n_block, local_energy=local_energy, verbose=0)
     for epoch in epochbar:
-        block = MCBlock(wf, n_block, local_energy=local_energy, verbose=0)
+        block.sample_block(wf, n_block)
 
         Eav = torch.mean(block.EL, dim=0)
         Okm = torch.mean(block.OK, dim=0)

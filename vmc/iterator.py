@@ -12,9 +12,9 @@ class MCBlock:
         )
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
-        self.sample_block(wf, n_block, verbose)
+        # self.sample_block(wf, n_block, verbose)
 
-    def sample_block(self, wf, n_block, verbose, n_dismiss=-10):
+    def sample_block(self, wf, n_block, verbose=0, n_dismiss=-10):
         spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device) - 1
         spin_vector = spin_vector.to(wf.dtype)
         for n in range(n_dismiss):
@@ -31,7 +31,9 @@ class MCBlock:
             self.EL[n] = self.local_energy(wf, spin_vector)
 
             # wf.assign_derivatives(spin_vector)
-            # check = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
+            # self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
+
+            # continue
 
             wf.reset_gattr()  # reset gradients before calling backward
             wf.logprob(spin_vector).real.backward()
