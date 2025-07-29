@@ -22,6 +22,6 @@ def draw_next(wf, x0, n_flip=1, n_iter=10):
     for _ in range(n_iter):
         next_spin_vector = draw_trial(spin_vector, n_flip)
         p_accept = torch.pow(torch.abs(wf.probratio(next_spin_vector, spin_vector)), 2)
-        if torch.rand(1) <= p_accept:
+        if torch.rand(1, device=p_accept.device) <= p_accept:
             spin_vector = next_spin_vector
     return spin_vector
