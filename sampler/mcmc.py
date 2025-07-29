@@ -2,7 +2,7 @@ import torch
 
 @torch.compile(fullgraph=True)
 def draw_trial(spin_vector, nflip):
-    spin_vector_flipped = spin_vector
+    spin_vector_flipped = spin_vector.detach().clone()
     for _ in range(nflip):
         n = torch.randint(len(spin_vector), [1])
         spin_vector_flipped[n] *= -1
@@ -19,7 +19,7 @@ def rho(sample1, sample2):
 
 # @torch.compile(fullgraph=True)
 def draw_next(wf, x0, n_flip=1, n_iter=10):
-    spin_vector = x0
+    spin_vector = x0.detach().clone()
     for _ in range(n_iter):
         next_spin_vector = draw_trial(spin_vector, n_flip)
         probratio = wf.probratio(next_spin_vector, spin_vector)
