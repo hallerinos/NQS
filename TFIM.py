@@ -19,7 +19,7 @@ def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1.0, h=-1.0):
 
 
 if __name__ == "__main__":
-    device = "cuda"
+    device = "cpu"
     dtype = torch.double
     # dtype = torch.complex128
 
@@ -45,17 +45,22 @@ if __name__ == "__main__":
         Okbar = (block.OK - Okm[None, :]) / n_block**0.5
         Okm = None  # free memory
         epsbar = (block.EL - Eav) / n_block**0.5
-        T = Okbar @ Okbar.adjoint()
+
+        U, S, Vh = torch.linalg.svd(Okbar, full_matrices=False)
+
+        Smax = max(abs(S))
+        sel = abs(S) > 1e-3*Smax
+        U = U[:, sel]
+        S = S[sel]
+        Vh = Vh[sel, :]
 
         deltaTheta = (
             -eta
-            * Okbar.adjoint()
-            @ torch.pinverse(
-                T + 1e-6 * torch.eye(T.shape[0], dtype=T.dtype, device=T.device),
-                rcond=1e-6,
-            )
+            * Vh.T.conj()
+            @ torch.diag(1/S)
+            @ U.T.conj()
             @ epsbar
-        )
+            )
 
         wf.update_params(deltaTheta)
 
