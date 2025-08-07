@@ -289,7 +289,7 @@ and
     .
 ```
 
-Define $\overline O_{\boldsymbol\sigma,j} = (O_{\boldsymbol\sigma} - \braket{\partial_{\theta_j}})/\sqrt{n_s}$ with $O_{\boldsymbol\sigma} = \partial_{\boldsymbol\theta}\ln\psi_{\boldsymbol\theta}(\boldsymbol\sigma)$ and $\overline H_{\boldsymbol\sigma} = (E_{\rm loc}(\boldsymbol\sigma) - \braket{\hat H})/\sqrt{n_s}$, and $\overline O_{ij}$ (similarly $\overline H$) the matrix element of the sampled value $\overline O_{\boldsymbol\sigma_i,j}$, then we can define the SR update as
+Define $\overline O_{\boldsymbol\sigma,j} = (O_{\boldsymbol\sigma} - \braket{\partial_{\theta_j}})/\sqrt{n_s}$ with $O_{\boldsymbol\sigma} = \partial_{\boldsymbol\theta}\ln\psi_{\boldsymbol\theta}(\boldsymbol\sigma)$, $\overline H_{\boldsymbol\sigma} = (E_{\rm loc}(\boldsymbol\sigma) - \braket{\hat H})/\sqrt{n_s}$, and $\overline O_{ij}$ (similarly $\overline H$) as the matrix element of the sampled value $\overline O_{\boldsymbol\sigma_i,j}$, then we can define the SR update as
 
 ```math
     \delta\boldsymbol\theta
