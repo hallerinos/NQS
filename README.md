@@ -257,7 +257,13 @@ For a general Ansatz, we have to evaluate
 
 For the RBM Ansatz, we have
 ```math
-    \ln\psi_{\boldsymbol\theta} = \boldsymbol b\cdot\boldsymbol\sigma + \sum_j^{n_h}\ln(\cosh\varphi_j(\boldsymbol\sigma))
+    \ln\psi_{\boldsymbol\theta}
+    =
+    \boldsymbol b\cdot\boldsymbol\sigma
+    +
+    \sum_{j=1}^{n_h}\ln(\cosh\varphi_j(\boldsymbol\sigma))
+    +
+    n_h \ln 2
 ```
 
 and can thus easily evaluate
