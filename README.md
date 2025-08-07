@@ -267,25 +267,25 @@ Due to the simplicity of the Ansatz, we can express the wave function derivative
 
 ## From SR to MinSR
 
-We employ the singular value decomposition $\overline O = U \Lambda V^\dag$ to establish the equivalence between
+We employ the singular value decomposition $\overline O = U \Lambda V^\dagger$ to establish the equivalence between
 
 ```math
-    (\overline O^\dag \overline O)^{-1} \overline O^\dag
+    (\overline O^\dagger \overline O)^{-1} \overline O^\dagger
     =
-    (V \Lambda^2 V^\dag)^{-1}
-    V \Lambda U^\dag
+    (V \Lambda^2 V^\dagger)^{-1}
+    V \Lambda U^\dagger
     =
-    V\Lambda^{-1} U^\dag
+    V\Lambda^{-1} U^\dagger
 ```
 
 and
 
 ```math
-    \overline O^\dag(\overline O \overline O^\dag)^{-1}
+    \overline O^\dagger(\overline O \overline O^\dagger)^{-1}
     =
-    V \Lambda U^\dag (U \Lambda^2 U^\dag)^{-1}
+    V \Lambda U^\dagger (U \Lambda^2 U^\dagger)^{-1}
     =
-    V\Lambda^{-1} U^\dag
+    V\Lambda^{-1} U^\dagger
     .
 ```
 
@@ -294,7 +294,7 @@ Define $\overline O_{\boldsymbol\sigma,j} = (O_{\boldsymbol\sigma} - \braket{\pa
 ```math
     \delta\boldsymbol\theta
     =
-    -\eta (\overline O^\dag\,\overline O)^{-1}\overline O^\dag \overline H
+    -\eta (\overline O^\dagger\,\overline O)^{-1}\overline O^\dagger \overline H
     .
 ```
 
@@ -304,9 +304,9 @@ MinSR, on the other hand, reads
 ```math
     \delta\boldsymbol\theta
     =
-    -\eta \overline O^\dag(\overline O\,\overline O^\dag)^{-1} \overline H
+    -\eta \overline O^\dagger(\overline O\,\overline O^\dagger)^{-1} \overline H
     ,
 ```
 
-and requires to invert the $n_s \times n_s$ matrix $T = \overline O\,\overline O^\dag$.
+and requires to invert the $n_s \times n_s$ matrix $T = \overline O\,\overline O^\dagger$.
 We can easily notice the computational advantage of MinSR, because an expressive wavefunction Ansatz satisfies $n_s\ll n_p$.
