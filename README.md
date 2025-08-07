@@ -244,7 +244,23 @@ Using the quantum metric tensor $S_{ij} = \braket{\psi_{\boldsymbol\theta} | \pa
 where $\eta = \epsilon / \lambda_0$ is the learning rate.
 Note that by imposing an imaginary learning rate $\eta\rightarrow{\rm i}\eta$, we perform real time evolution.
 
-Due to the simplicity of the Ansatz, we can express the wave function derivatives:
+For a general Ansatz, we have to evaluate
+
+```math
+    \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j} | \psi_{\boldsymbol\theta}}
+    =
+    \sum_{\boldsymbol\sigma}\psi_{\boldsymbol\theta}^*(\boldsymbol\sigma) \partial_{\theta_j} \psi_{\boldsymbol\theta}(\boldsymbol\sigma)
+    =
+    \sum_{\boldsymbol\sigma} p(\boldsymbol\sigma)\partial_{\theta_j}\ln\psi_{\boldsymbol\theta}(\boldsymbol\sigma)
+    .
+```
+
+For RBM Ansätze, we have
+```math
+    \ln\psi_{\boldsymbol\theta} = \boldsymbol b\cdot\boldsymbol\sigma + \sum_j^{n_h}\ln(\cosh\varphi_j(\boldsymbol\sigma))
+```
+
+and can thus easily evaluate
 
 ```math
 \begin{align*}
