@@ -1,6 +1,6 @@
 # Variational Monte Carlo with Neural Network States
 
-In this tutorial we will explore neural network wavefunction Ansätze to perform variational optimization of the energy expectation value in order to approximate quantum mechanical ground states.
+In this repository, we explore neural network wavefunction Ansätze to perform variational optimization of the energy expectation value in order to approximate quantum mechanical ground states.
 
 ## Energy expectation of quantum systems
 
