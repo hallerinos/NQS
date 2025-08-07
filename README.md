@@ -235,7 +235,7 @@ which can be combined by eliminating $\lambda_0 = 1 - \epsilon\braket{\hat H} - 
     .
 ```
 
-Using the quantum metric tensor $S_{ij} = \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_i}^\dagger \partial_{\theta_j} | \psi_{\boldsymbol\theta}} - \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_i}^\dagger | \psi_{\boldsymbol\theta}}\braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j} | \psi_{\boldsymbol\theta}}$ and the "effective forces" $R_j = \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j}^\dagger \hat H | \psi_{\boldsymbol\theta}} - \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j}^\dagger | \psi_{\boldsymbol \theta}} \braket{\psi_{\boldsymbol\theta} | \hat H | \psi_{\boldsymbol \theta}}$, can be recast into
+Using the quantum metric tensor $S_{ij} = \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_i}^\dagger \partial_{\theta_j} | \psi_{\boldsymbol\theta}} - \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_i}^\dagger | \psi_{\boldsymbol\theta}}\braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j} | \psi_{\boldsymbol\theta}}$ and the "effective forces" $R_j = \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j}^\dagger \hat H | \psi_{\boldsymbol\theta}} - \braket{\psi_{\boldsymbol\theta} | \partial_{\theta_j}^\dagger | \psi_{\boldsymbol \theta}} \braket{\psi_{\boldsymbol\theta} | \hat H | \psi_{\boldsymbol \theta}}$, the previous equation can be recast into
 
 ```math
     \delta\theta_i = -\eta S^{-1}_{ij} R_j
