@@ -9,15 +9,20 @@ class RBM:
         self.n_hidden = n_hidden
         self.n_param = n_spins + n_hidden + n_hidden * n_spins
         self.reset_params(device)
+    
+    def get_params(self):
+        return torch.cat((self.b, self.c, self.W.flatten()))
 
     def reset_params(self, device):
         b = torch.randn(self.n_spins, dtype=self.dtype, device=device)
         c = torch.randn(self.n_hidden, dtype=self.dtype, device=device)
         W = torch.randn((self.n_hidden, self.n_spins), dtype=self.dtype, device=device)
 
-        self.b = b.detach().clone().requires_grad_()
-        self.c = c.detach().clone().requires_grad_()
-        self.W = W.detach().clone().requires_grad_()
+        rn = torch.norm(b)
+
+        self.b = b.detach().clone().requires_grad_()/rn
+        self.c = c.detach().clone().requires_grad_()/rn
+        self.W = W.detach().clone().requires_grad_()/rn
 
     @torch.compile(fullgraph=True)
     def update_params(self, all_params):
@@ -35,9 +40,7 @@ class RBM:
             self.c /= renorm
             self.W += W
             self.W /= renorm
-            self.b.grad = None
-            self.c.grad = None
-            self.W.grad = None
+            self.reset_gattr()
 
     @torch.compile(fullgraph=True)
     def reset_gattr(self):
