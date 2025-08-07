@@ -265,7 +265,7 @@ Due to the simplicity of the Ansatz, we can express the wave function derivative
 \end{align*}
 ```
 
-## From SR to MinSR
+## From SR to [MinSR](https://www.nature.com/articles/s41567-024-02566-1)
 
 We employ the singular value decomposition $\overline O = U \Lambda V^\dagger$ to establish the equivalence between
 
