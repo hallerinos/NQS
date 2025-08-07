@@ -38,7 +38,7 @@ class MCBlock:
             wf.reset_gattr()  # reset gradients before calling backward
             wf.logprob(spin_vector).real.backward()
             self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))
-            # the following lines evaluate d/dx wf(x + iy), matching the definitions of Ob, Oc, and OW
+            # the following lines evaluate d/dz wf(z) for complex z, matching the definitions of Ob, Oc, and OW
             if torch.is_complex(spin_vector):
                 wf.reset_gattr()  # reset gradients before calling backward
                 wf.logprob(spin_vector).imag.backward()
