@@ -148,7 +148,7 @@ The integrated autocorrelation is defined by
 where $\rho_k = {\rm Cov}(X_0, X_k) / \sqrt{{\rm Var}(X_0){\rm Var}(X_k)}$ is the autocorrelation.
 In practice, it is an estimate for the fraction of the effective size of independent samples in a correlated set, i.e. $N_{\rm eff} = N / R$.
 
-## Restricted Boltzmann Machine (Rboldsymbol) Ansatz
+## Restricted Boltzmann Machine (RBM) Ansatz
 
 We represent the wave function $\psi(\boldsymbol\sigma)$ by the following parametrized function
 
