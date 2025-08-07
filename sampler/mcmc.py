@@ -22,8 +22,7 @@ def draw_next(wf, x0, n_flip=1, n_iter=10):
     spin_vector = x0.detach().clone()
     for _ in range(n_iter):
         next_spin_vector = draw_trial(spin_vector, n_flip)
-        p_accept = wf.probratio(next_spin_vector, spin_vector)
-        p_accept *= p_accept.conj()
-        if torch.rand(1, device=p_accept.device) <= p_accept:
+        probratio = wf.probratio(next_spin_vector, spin_vector)
+        if torch.rand(1, device=probratio.device) <= probratio*probratio.conj():
             spin_vector = next_spin_vector
     return spin_vector

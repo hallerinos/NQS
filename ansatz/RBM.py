@@ -15,9 +15,9 @@ class RBM:
         c = torch.randn(self.n_hidden, dtype=self.dtype, device=device)
         W = torch.randn((self.n_hidden, self.n_spins), dtype=self.dtype, device=device)
 
-        self.b = (b).detach().clone().requires_grad_()
-        self.c = (c).detach().clone().requires_grad_()
-        self.W = (W).detach().clone().requires_grad_()
+        self.b = b.detach().clone().requires_grad_()
+        self.c = c.detach().clone().requires_grad_()
+        self.W = W.detach().clone().requires_grad_()
 
     @torch.compile(fullgraph=True)
     def update_params(self, all_params):
@@ -80,6 +80,4 @@ class RBM:
     def probratio(self, x_nom, x_denom):
         f_nom = torch.cosh(self.c + self.W @ x_nom)
         f_denom = torch.cosh(self.c + self.W @ x_denom)
-        return torch.exp(
-            self.b @ (x_nom - x_denom) + torch.sum(torch.log(f_nom / f_denom))
-        )
+        return torch.exp(self.b @ (x_nom - x_denom) + torch.sum(torch.log(f_nom / f_denom)))
