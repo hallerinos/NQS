@@ -15,7 +15,7 @@ class MPS:
 
         self.A = A.detach().clone().requires_grad_()
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def update_params(self, all_params):
         with torch.no_grad():
             self.A[:] += all_params[:]
@@ -23,34 +23,34 @@ class MPS:
             self.A /= renorm
             self.A.grad = None
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def reset_gattr(self):
         self.A.grad = None
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def prob(self, x):
         pamp = torch.eye(self.bond_dim)
         for ni in range(self.n_spins):
             pamp *= self.A[ni, :, x[ni], :]
         return pamp
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def prob_(self, x):
         return torch.exp(self.b.conj() @ x) * torch.prod(
             2 * torch.cosh(self.c.conj() + self.W.conj() @ x)
         )
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def logprob(self, x):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def logprob_(self, x):
         return self.b.conj() @ x + torch.sum(
             torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
         )
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=True)
     def probratio(self, x_nom, x_denom):
         f_nom = torch.cosh(self.c + self.W @ x_nom)
         f_denom = torch.cosh(self.c + self.W @ x_denom)

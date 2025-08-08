@@ -30,6 +30,7 @@ class MCBlock:
             self.samples[n, :] = spin_vector
             self.EL[n] = self.local_energy(wf, spin_vector)
 
+
             wf.assign_derivatives(spin_vector)
             self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
 
