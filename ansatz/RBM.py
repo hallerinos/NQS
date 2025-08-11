@@ -21,9 +21,9 @@ class RBM:
 
         rn = torch.norm(b)
 
-        self.b = b.detach().clone().requires_grad_()/rn
-        self.c = c.detach().clone().requires_grad_()/rn
-        self.W = W.detach().clone().requires_grad_()/rn
+        self.b = (b/rn).detach().clone().requires_grad_()
+        self.c = (c/rn).detach().clone().requires_grad_()
+        self.W = (W/rn).detach().clone().requires_grad_()
 
     # @torch.compile(fullgraph=True)
     def update_params(self, all_params):
