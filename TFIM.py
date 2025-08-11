@@ -5,6 +5,17 @@ from vmc.iterator import MCBlock
 from icecream import ic
 from pyinstrument import Profiler
 from vmc.minSR import minSR
+from vmc.SR import SR
+import numpy as np
+
+def energy_single_p_mode(h_t, P):
+    return np.sqrt(1 + h_t**2 - 2 * h_t * np.cos(P))
+
+def ground_state_energy_per_site(h_t, N):
+    Ps = 0.5 * np.arange(- (N - 1), N - 1 + 2, 2)
+    Ps = Ps * 2 * np.pi / N
+    energies_p_modes = np.array([energy_single_p_mode(h_t, P) for P in Ps])
+    return - 1 / N * np.sum(energies_p_modes)
 
 # @torch.compile(fullgraph=True)
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1, h=-1):
@@ -32,11 +43,12 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 400  # spin sites
-    n_hidden = 400  # neurons in hidden layer
+    n_spins = 10  # spin sites
+    n_hidden = 10  # neurons in hidden layer
     n_block = 400  # samples / expval
-    n_epoch = 100  # variational iterations
-    eta = 0.1  # learning rate
+    n_epoch = 400  # variational iterations
+    g = 0.7  # Zeeman interaction amplitude
+    eta = 0.01  # learning rate
 
     wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
     ic(wf.n_param)
@@ -45,7 +57,7 @@ if __name__ == "__main__":
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
     with Profiler(interval=0.1) as profiler:
-        block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-0.7), verbose=0)
+        block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g), verbose=0)
         for epoch in epochbar:
             block.sample_block(wf, n_block)
 
@@ -56,7 +68,7 @@ if __name__ == "__main__":
             Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            wf.update_params(minSR(Okbar, epsbar, eta, thresh=1e-4))
+            wf.update_params(minSR(Okbar, epsbar, eta))
 
             E_var = torch.conj(epsbar) @ epsbar
             # Eavs[epoch] = Eav  # for some reason, this causes a memory leak...
@@ -65,3 +77,5 @@ if __name__ == "__main__":
                 f"Epoch {epoch}, Average energy {Eav.detach()/n_spins}, Energy variance {E_var.detach()}, eta {eta}"
             )
     profiler.print()
+
+ic((Eav.detach()/n_spins - ground_state_energy_per_site(g, n_spins)))
