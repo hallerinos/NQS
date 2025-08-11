@@ -4,6 +4,7 @@ from ansatz.RBM import RBM
 from vmc.iterator import MCBlock
 from icecream import ic
 from pyinstrument import Profiler
+from vmc.minSR import minSR
 
 # @torch.compile(fullgraph=True)
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1, h=-1):
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
     with Profiler(interval=0.1) as profiler:
-        block = MCBlock(wf, n_block, local_energy=local_energy, verbose=0)
+        block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-0.7), verbose=0)
         for epoch in epochbar:
             block.sample_block(wf, n_block)
 
@@ -55,33 +56,11 @@ if __name__ == "__main__":
             Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
 
-
-            U, S, Vh = torch.linalg.svd(Okbar@Okbar.T.conj(), full_matrices=False)
-
-            Smax = torch.max(torch.abs(S))
-            # Compute threshold once
-            threshold = min(1e-5, E_var.real) * Smax
-            # Use torch.where for faster selection and avoid creating intermediate boolean tensor
-            mask = torch.where(torch.abs(S) > threshold)[0]
-            # Index directly with mask
-            U = U.index_select(1, mask)
-            S = S.index_select(0, mask)
-            Vh = Vh.index_select(0, mask)
-
-            deltaTheta = (
-                - eta
-                * Okbar.T.conj()
-                @ Vh.T.conj()
-                @ torch.diag(1/S).to(dtype)
-                @ U.T.conj()
-                @ epsbar
-                )
-
-            wf.update_params(deltaTheta)
+            wf.update_params(minSR(Okbar, epsbar, eta, thresh=1e-4))
 
             E_var = torch.conj(epsbar) @ epsbar
             # Eavs[epoch] = Eav  # for some reason, this causes a memory leak...
-            eta /= 2 if (epoch % 50 == 0) and epoch > 0 else 1
+            # eta /= 2 if (epoch % 50 == 0) and epoch > 0 else 1
             epochbar.set_description(
                 f"Epoch {epoch}, Average energy {Eav.detach()/n_spins}, Energy variance {E_var.detach()}, eta {eta}"
             )
