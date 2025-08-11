@@ -1,7 +1,7 @@
 import torch
 
-def minSR_(Okbar, epsbar, eta, thresh=1e-12):
-    U, S, Vh = torch.linalg.svd(Okbar@Okbar.T.conj(), full_matrices=False)
+def SR_(Okbar, epsbar, eta, thresh=1e-12):
+    U, S, Vh = torch.linalg.svd(Okbar.T.conj()@Okbar, full_matrices=False)
 
     Smax = torch.max(torch.abs(S))
     # Compute threshold once
@@ -15,22 +15,22 @@ def minSR_(Okbar, epsbar, eta, thresh=1e-12):
 
     deltaTheta = (
         - eta
-        * Okbar.T.conj()
-        @ Vh.T.conj()
+        * Vh.T.conj()
         @ torch.diag(1/S).to(Okbar.dtype)
         @ U.T.conj()
+        @ Okbar.T.conj()
         @ epsbar
         )
     
     return deltaTheta
 
-def minSR(Okbar, epsbar, eta, thresh=1e-12):
-    Tpinv = torch.linalg.pinv(Okbar@Okbar.T.conj(), rtol=thresh)
+def SR(Okbar, epsbar, eta, thresh=1e-12):
+    Spinv = torch.linalg.pinv(Okbar.T.conj()@Okbar, rtol=thresh)
 
     deltaTheta = (
         - eta
-        * Okbar.T.conj()
-        @ Tpinv
+        * Spinv
+        @ Okbar.T.conj()
         @ epsbar
         )
     
