@@ -14,7 +14,7 @@ class MCBlock:
         self.local_energy = local_energy
         self.sample_block(wf, n_block, verbose)
 
-    def sample_block(self, wf, n_block, verbose=0, n_dismiss=-10):
+    def sample_block(self, wf, n_block, verbose=0, n_dismiss=10):
         spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device) - 1
         spin_vector = spin_vector.to(wf.dtype)
         for n in range(n_dismiss):
