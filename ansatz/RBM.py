@@ -9,6 +9,7 @@ class RBM:
         self.n_spins = n_spins
         self.n_hidden = n_hidden
         self.n_param = n_spins + n_hidden + n_hidden * n_spins
+        self.gradients = None
         self.reset_params(device)
     
     def get_params(self):
@@ -59,6 +60,9 @@ class RBM:
         self.Ob = Ob
         self.Oc = Oc
         self.OW = OW
+
+    def assign_gradients(self):
+        self.gradients = torch.cat((self.b.grad, self.c.grad, self.W.grad.flatten()))
 
     # @torch.compile(fullgraph=True)
     def prob(self, x):

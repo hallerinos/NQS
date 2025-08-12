@@ -31,14 +31,16 @@ class MCBlock:
             self.EL[n] = self.local_energy(wf, spin_vector)
 
 
-            wf.assign_derivatives(spin_vector)
-            self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
+            # wf.assign_derivatives(spin_vector)
+            # self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
 
-            continue
+            # continue
 
             wf.reset_gattr()  # reset gradients before calling backward
             wf.logprob(spin_vector).real.backward()
-            self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))
+            wf.assign_gradients()
+            # self.OK[n, :] = torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))
+            self.OK[n, :] = wf.gradients
             # the following lines evaluate d/dz wf(z) for complex z, matching the definitions of Ob, Oc, and OW
             if torch.is_complex(spin_vector):
                 wf.reset_gattr()  # reset gradients before calling backward
