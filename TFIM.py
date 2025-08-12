@@ -1,6 +1,7 @@
 import torch
 from tqdm import trange
 from ansatz.RBM import RBM
+from ansatz.Jastrow import JST
 from vmc.iterator import MCBlock
 from icecream import ic
 from pyinstrument import Profiler
@@ -45,12 +46,13 @@ if __name__ == "__main__":
 
     n_spins = 10  # spin sites
     n_hidden = 10  # neurons in hidden layer
-    n_block = 400  # samples / expval
+    n_block = 1000  # samples / expval
     n_epoch = 400  # variational iterations
-    g = 0.7  # Zeeman interaction amplitude
+    g = 1.0  # Zeeman interaction amplitude
     eta = 0.01  # learning rate
 
-    wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
+    wf = JST(n_spins, dtype=dtype, device=device)
+    # wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
     ic(wf.n_param)
 
     epochbar = trange(n_epoch)
@@ -68,7 +70,7 @@ if __name__ == "__main__":
             Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            wf.update_params(minSR(Okbar, epsbar, eta))
+            wf.update_params(minSR(Okbar, epsbar, eta, thresh=1e-6))
 
             E_var = torch.conj(epsbar) @ epsbar
             # Eavs[epoch] = Eav  # for some reason, this causes a memory leak...
