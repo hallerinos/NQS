@@ -13,14 +13,14 @@ class JST:
 
     def reset_params(self):
         j = torch.randn(2, dtype=self.dtype, device=self.device)
-        self.j = (j / j.norm()).detach().clone().requires_grad_()
+        self.j = j.detach().clone().requires_grad_()
     
     def reset_gattr(self):
         self.j.grad = None
 
     def assign_params(self, all_params):
         j = all_params[:]
-        self.j = j / j.norm()
+        self.j = j.detach().clone().requires_grad_()
 
     def update_params(self, all_params):
         j = all_params
@@ -40,6 +40,12 @@ class JST:
         nnn = self.j[1] * x.roll(2) @ x
 
         return nn + nnn
+    
+    def assign_all_logprobs(self, x):
+        nn = x.roll(1, 1) @ x.T
+        nnn = x.roll(2, 1) @ x.T
+        self.nn = torch.diag(nn)
+        self.nnn = torch.diag(nnn)
 
     def probratio(self, x_nom, x_denom):
         f_nom = self.j[0] * x_nom.roll(1) @ x_nom + self.j[1] * x_nom.roll(2) @ x_nom
