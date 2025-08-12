@@ -1,4 +1,5 @@
 import torch
+from icecream import ic
 
 # Jastrow Ansatz for the 1D Ising model
 class JST:
@@ -46,6 +47,6 @@ class JST:
         return torch.exp(f_nom - f_denom)
     
     def probratio_(self, x_nom, x_denom):
-        f_nom = self.j[0] * x_nom.roll(1) @ x_nom + self.j[1] * x_nom.roll(2) @ x_nom
-        f_denom = self.j[0] * x_denom.roll(1) @ x_denom + self.j[1] * x_denom.roll(2) @ x_denom
-        return torch.exp(f_nom - f_denom)
+        f_nom = self.j[0] * x_nom.roll(1, 1) @ x_nom.T + self.j[1] * x_nom.roll(2, 1) @ x_nom.T
+        f_denom = self.j[0] * x_denom.roll(1, 1) @ x_denom.T + self.j[1] * x_denom.roll(2, 1) @ x_denom.T
+        return torch.diag(torch.exp((f_nom - f_denom)))
