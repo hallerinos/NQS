@@ -40,7 +40,7 @@ class ExactBlock:
             if torch.is_complex(spin_vector):
                 wf.reset_gattr()  # reset gradients before calling backward
                 wf.logprob(spin_vector).imag.backward()
-                self.OK[n, :] -= torch.cat((wf.b.grad, wf.c.grad, wf.W.grad.flatten()))*1j
+                self.OK[n, :] -= wf.gradients*1j
 
                 self.OK[n, :] = self.OK[n, :].conj() / 2
                 # ic(torch.norm(self.OK[n, :] - check))
