@@ -332,3 +332,62 @@ MinSR, on the other hand, reads
 
 and requires to invert the $n_s \times n_s$ matrix $T = \overline O\,\overline O^\dagger$.
 We can easily notice the computational advantage of MinSR, because an expressive wavefunction Ansatz satisfies $n_s\ll n_p$.
+
+## SR $\equiv$ Riemannian Gradient Descent (RGD)
+
+In this section, we derive gradient descent on Riemannian manifolds.
+Consider $\mathcal M=\mathcal S^2$ and a smooth function $f: \mathcal S^2 \to \mathbb R$ we seek to minimize.
+Let $\boldsymbol p\in\mathcal S^2$, $\boldsymbol v\in T_p\mathcal S^2$ and the retraction onto the sphere as $R_{\boldsymbol p}(\boldsymbol v) = (\boldsymbol p+\boldsymbol v)/|\boldsymbol p+\boldsymbol v|$.
+For the standard parametrization
+
+```math
+    \boldsymbol r
+    =
+    \begin{pmatrix}
+        \sin\theta\cos\phi\\
+        \sin\theta\sin\phi\\
+        \cos\theta
+    \end{pmatrix}
+    ,\
+    \boldsymbol e_{\theta}
+    =
+    \frac{\partial r}{\partial\theta}
+    =
+    \begin{pmatrix}
+        \cos\theta\cos\phi\\
+        \cos\theta\sin\phi\\
+        -\sin\theta
+    \end{pmatrix}
+    ,\
+    \boldsymbol e_{\phi}
+    =
+    \frac{\partial r}{\partial\phi}
+    =
+    \begin{pmatrix}
+        -\sin\theta\sin\phi\\
+        \sin\theta\cos\phi\\
+        0
+    \end{pmatrix}
+```
+
+such that $T_p\mathcal S^2 = {\rm span}\{\boldsymbol e_\phi, \boldsymbol e_\theta\} \simeq \mathbb R^2$, and the distances on $\mathcal S^2$ are described by the induced metric $g$ with components $g_{\phi\phi} = \sin^2\theta$, $g_{\theta\theta}=1$.
+The gradient in the spherical coordinates is defined as
+
+```math
+    {\rm grad} f
+    =
+    g^{-1}_{ij}\frac{\partial f}{\partial x_i}{\boldsymbol  e}_j
+    =
+    \frac1{\sin\theta}\frac{\partial f}{\partial\phi}\hat {\boldsymbol e}_\phi
+    +
+    \frac{\partial f}{\partial\theta}\hat{\boldsymbol  e}_\theta
+    .
+```
+
+The Riemannian gradient descent $\boldsymbol x_i\in\mathcal S^2$ is given by the retraction of the gradient (from the embedded space) onto the sphere, i.e.
+
+```math
+    \boldsymbol x_{i+1}
+    =
+    R_{\boldsymbol x_i}(-\eta\ {\rm grad} f).
+```
