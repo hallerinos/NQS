@@ -311,7 +311,7 @@ and
     .
 ```
 
-Define $\overline O_{\boldsymbol\sigma,j} = (O_{\boldsymbol\sigma} - \braket{\partial_{\theta_j}})/\sqrt{n_s}$ with $O_{\boldsymbol\sigma} = \partial_{\boldsymbol\theta}\ln\psi_{\boldsymbol\theta}(\boldsymbol\sigma)$, $\overline H_{\boldsymbol\sigma} = (E_{\rm loc}(\boldsymbol\sigma) - \braket{\hat H})/\sqrt{n_s}$, and $\overline O_{ij}$ (similarly $\overline H$) as the matrix element of the sampled value $\overline O_{\boldsymbol\sigma_i,j}$, then we can define the SR update as
+Define $\overline O_{\boldsymbol\sigma,j} = (O_{\boldsymbol\sigma} - \braket{\partial_{\theta_j}})/\sqrt{n_s}$ with $O_{\boldsymbol\sigma} = \partial_{\boldsymbol\theta}\ln\psi_{\boldsymbol\theta}(\boldsymbol\sigma)$, $\overline H_{\boldsymbol\sigma} = (E_{{\rm loc},\boldsymbol\theta}(\boldsymbol\sigma) - \braket{\hat H})/\sqrt{n_s}$, and $\overline O_{ij}$ (similarly $\overline H$) as the matrix element of the sampled value $\overline O_{\boldsymbol\sigma_i,j}$, then we can define the SR update as
 
 ```math
     \delta\boldsymbol\theta
@@ -333,9 +333,8 @@ MinSR, on the other hand, reads
 and requires to invert the $n_s \times n_s$ matrix $T = \overline O\,\overline O^\dagger$.
 We can easily notice the computational advantage of MinSR, because an expressive wavefunction Ansatz satisfies $n_s\ll n_p$.
 
-## SR $\equiv$ Riemannian Gradient Descent (RGD)
+## Riemannian Gradient Descent (RGD)
 
-In this section, we derive gradient descent on Riemannian manifolds.
 Consider $\mathcal M=\mathcal S^2$ and a smooth function $f: \mathcal S^2 \to \mathbb R$ we seek to minimize.
 Let $\boldsymbol p\in\mathcal S^2$, $\boldsymbol v\in T_p\mathcal S^2$ and the retraction onto the sphere as $R_{\boldsymbol p}(\boldsymbol v) = (\boldsymbol p+\boldsymbol v)/|\boldsymbol p+\boldsymbol v|$.
 For the standard parametrization
@@ -370,24 +369,39 @@ For the standard parametrization
     \end{pmatrix}
 ```
 
-such that $T_p\mathcal S^2 = {\rm span}\{\boldsymbol e_\phi, \boldsymbol e_\theta\} \simeq \mathbb R^2$, and the distances on $\mathcal S^2$ are described by the induced metric $g$ with components $g_{\phi\phi} = \sin^2\theta$, $g_{\theta\theta}=1$.
-The gradient in the spherical coordinates is defined as
+such that $T_p\mathcal S^2 = {\rm span}\{\boldsymbol e_\phi, \boldsymbol e_\theta\} \simeq \mathbb R^2$, and the distances on $\mathcal S^2$ are described by the induced metric $g$ with components $g_{ij} = \boldsymbol e_i \cdot \boldsymbol e_j$, i.e. $g_{\phi\phi} = \sin^2\theta$, $g_{\theta\theta}=1$ and $g_{\phi\theta}=0$.
+The gradient is defined as
 
 ```math
     {\rm grad} f
     =
-    g^{-1}_{ij}\frac{\partial f}{\partial x_i}{\boldsymbol  e}_j
+    g^{-1}_{ij}\frac{\partial f}{\partial x_j} {\boldsymbol  e}_i
     =
-    \frac1{\sin\theta}\frac{\partial f}{\partial\phi}\hat {\boldsymbol e}_\phi
-    +
     \frac{\partial f}{\partial\theta}\hat{\boldsymbol  e}_\theta
+    +
+    \frac1{\sin\theta}\frac{\partial f}{\partial\phi}\hat {\boldsymbol e}_\phi
     .
 ```
 
-The Riemannian gradient descent $\boldsymbol x_i\in\mathcal S^2$ is given by the retraction of the gradient (from the embedded space) onto the sphere, i.e.
+The Riemannian gradient descent $\boldsymbol x_i\in\mathcal S^2$ is then given by the retraction of the gradient onto the sphere, i.e.
 
 ```math
-    \boldsymbol x_{i+1}
+    \boldsymbol r_{i+1}
     =
-    R_{\boldsymbol x_i}(-\eta\ {\rm grad} f).
+    R_{\boldsymbol r_i}(-\eta\ {\rm grad} f).
 ```
+
+Assuming that $\eta$ is a small parameter, we may expand the previous expression to leading order in the components of the spherical coordinate system and find
+
+```math
+    \alpha_{i+1}
+    =
+    \alpha_i - \eta\ {\rm grad} f_\alpha
+    =
+    \alpha_i - \eta\ g^{-1}_{\alpha j}\frac{\partial f}{\partial j}
+    ,\
+    \alpha,j \in \{\theta,\phi\}
+    .
+```
+
+We thus recognize that the update rules of the coordinates follow the standard gradient descent algorithm (parametrized by the angles), but where the Euclidean gradient is replaced by the appropriate gradient on $\mathcal M$.
