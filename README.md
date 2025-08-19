@@ -405,3 +405,30 @@ Assuming that $\eta$ is a small parameter, we may expand the previous expression
 ```
 
 We thus recognize that the update rules of the coordinates follow the standard gradient descent algorithm (parametrized by the angles), but where the Euclidean gradient is replaced by the appropriate gradient on $\mathcal M$.
+
+Given the definition $E = \frac{\braket{\psi_{\boldsymbol\theta} | \hat H | \psi_{\boldsymbol\theta}}}{\braket{\psi_{\boldsymbol\theta} | \psi_{\boldsymbol\theta}}}$, we can evaluate the gradient with respect to the variational parameters and find the relation to the previously introduced effective forces
+
+```math
+    \partial_{\theta_j} E
+    =
+    2\ {\rm Re}
+    \left(
+        \frac{
+            \braket{\partial_{\theta_i}\psi_{\boldsymbol\theta} | \hat H | \psi_{\boldsymbol\theta}}
+        }{
+            \braket{\psi_{\boldsymbol\theta} | \psi_{\boldsymbol\theta}}
+        }
+        -
+        \frac{
+            \braket{\partial_{\theta_i}\psi_{\boldsymbol\theta} | \psi_{\boldsymbol\theta}}
+            \braket{\psi_{\boldsymbol\theta} | \hat H | \psi_{\boldsymbol\theta}}
+        }{
+            \braket{\psi_{\boldsymbol\theta} | \psi_{\boldsymbol\theta}}^2
+        }
+    \right)
+    =
+    2\ {\rm Re}\ R_j
+```
+
+where we used that $\hat H=\hat H^\dagger$.
+We also know that the Fubini-Study metric is given by $S = {\rm Re}\ \overline O^\dagger \overline O$
