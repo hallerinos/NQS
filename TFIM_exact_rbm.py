@@ -2,7 +2,7 @@ import torch
 from tqdm import trange
 from ansatz.RBM import RBM
 from ansatz.Jastrow import JST
-from vmc.iterator import MCBlock
+from exact.iterator import ExactBlock
 from icecream import ic
 from pyinstrument import Profiler
 from vmc.minSR import minSR
@@ -59,16 +59,20 @@ if __name__ == "__main__":
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
     with Profiler(interval=0.1) as profiler:
-        block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g), verbose=0)
+        block = ExactBlock(
+            wf, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g), verbose=0
+        )
         for epoch in epochbar:
-            block.sample_block(wf, n_block)
+            block.compute_exact(wf, n_block)
 
-            Eav = torch.mean(block.EL, dim=0)
-            Okm = torch.mean(block.OK, dim=0)
+            Eav = block.EL @ block.probs
+            Okm = block.probs @ block.OK
 
-            Okbar = (block.OK - Okm[None, :]) / n_block**0.5
+            Okbar = torch.einsum(
+                        "ij,i->ij", block.OK - Okm[None, :], block.probs**0.5
+                    )
             Okm = None  # free memory
-            epsbar = (block.EL - Eav) / n_block**0.5
+            epsbar = (block.EL - Eav) * block.probs**0.5
 
             wf.update_params(minSR(Okbar, epsbar, eta, thresh=1e-6))
 

@@ -102,6 +102,6 @@ class RBM:
         phi_denom = c_tp + self.W @ x_denom.T
         f_denom = torch.cosh(phi_denom)
         log_diff = torch.log(f_nom) - torch.log(f_denom)
-        val = self.b @ x_diff + torch.sum(log_diff, dim=0)
+        val = x_diff @ self.b + torch.sum(log_diff, dim=0) 
         val = val.detach()  # without this line we have a memory leak ???
         return torch.exp(val)
