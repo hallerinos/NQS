@@ -25,7 +25,7 @@ def SR_(Okbar, epsbar, eta, thresh=1e-12):
     return deltaTheta
 
 def SR(Okbar, epsbar, eta, thresh=1e-12):
-    Spinv = torch.linalg.pinv(Okbar.T.conj()@Okbar, rtol=thresh)
+    Spinv = torch.linalg.pinv(Okbar.T.conj()@Okbar, rtol=thresh, hermitian=True)
 
     deltaTheta = (
         - eta
