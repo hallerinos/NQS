@@ -1,9 +1,10 @@
 import torch
 from icecream import ic
 
-
-class RBM:
-    def __init__(self, n_spins, n_hidden, dtype=torch.float64, device="cpu"):
+@torch.compile(fullgraph=True)
+class RBM(torch.nn.Module):
+    def __init__(self, n_spins, n_hidden, dtype=torch.float64, device="cpu") -> None:
+        super().__init__()
         self.device = device
         self.dtype = dtype
         self.n_spins = n_spins
@@ -26,7 +27,7 @@ class RBM:
         self.c = (c/rn).detach().clone().requires_grad_()
         self.W = (W/rn).detach().clone().requires_grad_()
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def update_params(self, all_params):
         b = all_params[: self.n_spins]
         c = all_params[self.n_spins : self.n_spins + self.n_hidden]
@@ -44,13 +45,13 @@ class RBM:
             self.W /= renorm
             self.reset_gattr()
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def reset_gattr(self):
-        self.b.grad = None
-        self.c.grad = None
-        self.W.grad = None
+        self.b.grad = torch.zeros_like(self.b)
+        self.c.grad = torch.zeros_like(self.c)
+        self.W.grad = torch.zeros_like(self.W)
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def assign_derivatives(self, x):
         theta = self.c + self.W @ x
         Ob = x
@@ -64,27 +65,27 @@ class RBM:
     def assign_gradients(self):
         self.gradients = torch.cat((self.b.grad, self.c.grad, self.W.grad.flatten()))
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def prob(self, x):
         return torch.exp(self.b @ x) * torch.prod(2 * torch.cosh(self.c + self.W @ x))
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def prob_(self, x):
         return torch.exp(self.b.conj() @ x) * torch.prod(
             2 * torch.cosh(self.c.conj() + self.W.conj() @ x)
         )
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def logprob(self, x):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def logprob_(self, x):
         return self.b.conj() @ x + torch.sum(
             torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
         )
 
-    # @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=True)
     def probratio(self, x_nom, x_denom):
         x_diff = x_nom - x_denom
         phi_nom = self.c + self.W @ x_nom
@@ -94,6 +95,7 @@ class RBM:
         log_diff = torch.log(f_nom) - torch.log(f_denom)
         return torch.exp(self.b @ x_diff + torch.sum(log_diff))
 
+    @torch.compile(fullgraph=True)
     def probratio_(self, x_nom, x_denom):
         c_tp = self.c.repeat(len(x_nom), 1).T
         x_diff = x_nom - x_denom
