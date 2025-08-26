@@ -1,6 +1,6 @@
 import torch
 
-# @torch.compile(fullgraph=True)
+@torch.compile(fullgraph=True)
 def draw_trial(spin_vector, nflip):
     spin_vector_flipped = spin_vector.detach().clone()
     # Generate all random indices at once
@@ -18,7 +18,7 @@ def rho(sample1, sample2):
     covd2 = torch.mean((sample2 - avsample2)**2, dim=0) / (sample2.shape[0] - 1)
     return covod / torch.sqrt(covd1 * covd2), covod, covd1, covd2
 
-# @torch.compile(fullgraph=True)
+@torch.compile(fullgraph=True)
 def draw_next(wf, x0, n_flip=1, n_iter=10):
     spin_vector = x0.detach().clone()
     # Generate all random numbers upfront
@@ -28,6 +28,5 @@ def draw_next(wf, x0, n_flip=1, n_iter=10):
     for i in range(n_iter):
         next_spin_vector = draw_trial(spin_vector, n_flip)
         probratio = wf.probratio(next_spin_vector, spin_vector)
-        if rand_nums[i].real <= (probratio * probratio.conj()).real:
-            spin_vector = next_spin_vector    
+        spin_vector = torch.where(rand_nums[i].real <= (probratio * probratio.conj()).real, next_spin_vector, spin_vector)
     return spin_vector
