@@ -8,6 +8,7 @@ from pyinstrument import Profiler
 from vmc.minSR import minSR
 from vmc.SR import SR, SR_
 import numpy as np
+from energies.TFIM import local_energy
 
 def energy_single_p_mode(h_t, P):
     return np.sqrt(1 + h_t**2 - 2 * h_t * np.cos(P))
@@ -17,25 +18,6 @@ def ground_state_energy_per_site(h_t, N):
     Ps = Ps * 2 * np.pi / N
     energies_p_modes = np.array([energy_single_p_mode(h_t, P) for P in Ps])
     return - 1 / N * np.sum(energies_p_modes)
-
-@torch.compile(fullgraph=True)
-def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1, h=-1):
-    interactions = spin_vector[1:] @ spin_vector[:-1]
-    interactions += spin_vector[0] * spin_vector[-1]  # pbc
-
-
-    # Create copies of original configuration and a batch of flipped configurations
-    spin_vector_r = spin_vector.repeat(len(spin_vector), 1)
-    flipped_spins = spin_vector.repeat(len(spin_vector), 1)
-    # Create indices for diagonal elements
-    indices = torch.arange(len(spin_vector), device=spin_vector.device)
-    # Flip spins in batch
-    flipped_spins[indices, indices] *= -1
-    # Calculate all probability ratios at once
-    zeeman_term = wf.probratio_(flipped_spins, spin_vector_r).sum()
-
-    return J * interactions + h * zeeman_term
-
 
 if __name__ == "__main__":
     device = "cuda"
