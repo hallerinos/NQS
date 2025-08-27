@@ -3,7 +3,7 @@ from icecream import ic
 
 @torch.compile(fullgraph=True)
 class RBM(torch.nn.Module):
-    def __init__(self, n_spins, n_hidden, dtype=torch.float64, device="cpu") -> None:
+    def __init__(self, n_spins, n_hidden, dtype=torch.float64, device="cuda") -> None:
         super().__init__()
         self.device = device
         self.dtype = dtype
