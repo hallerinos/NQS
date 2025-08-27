@@ -15,7 +15,7 @@ class MCBlock:
         self.sample_block(wf, n_block, verbose)
 
     def sample_block(self, wf, n_block, verbose=0, n_dismiss=16):
-        spin_vector = 2 * torch.randint(1, [wf.n_spins], device=wf.device, dtype=wf.dtype) - 1.0
+        spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device, dtype=wf.dtype) - 1.0
         for n in range(n_dismiss):
             spin_vector = draw_next(wf, spin_vector, n_flip=1, n_iter=4)
 
@@ -42,7 +42,7 @@ class MCBlock:
             # ic(torch.norm(self.OK[n, :] - check))
 
     def batch_sample_block(self, wf, n_block, verbose=0, n_dismiss=10, n_batch=64):
-        spin_vectors = 2 * torch.randint(1, [n_batch, wf.n_spins], device=wf.device, dtype=wf.dtype) - 1
+        spin_vectors = 2 * torch.randint(2, [n_batch, wf.n_spins], device=wf.device, dtype=wf.dtype) - 1
         for n in range(n_dismiss):
             spin_vectors = torch.vmap(draw_next, in_dims=(None, 0), randomness='different')(wf, spin_vectors, n_flip=1, n_iter=4)
 
