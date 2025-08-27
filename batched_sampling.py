@@ -37,12 +37,12 @@ def batched_draw_next(wf, x0, n_flip=1, n_iter=2**4):
             spin_vectors[idxs, :] = next_spin_vectors[idxs, :]
     return spin_vectors
 
-n_spins, n_samples, n_batch = 128, 2**16, 2**16
-n_samples_batched = n_samples//n_batch
-wf = torch.compile(RBM(n_spins, n_spins))
-ic(n_batch, n_spins, n_samples, n_samples_batched, wf.n_param)
+n_spins, n_samples, n_batch = 128, 2**12, 2**0
+n_samples_sequential = n_samples//n_batch
+wf = torch.compile(RBM(n_spins, n_spins, device='cpu'))
+ic(n_batch, n_spins, n_samples, n_samples_sequential, wf.n_param)
 
 sns = 2.0*torch.randint(0, 2, (n_batch, n_spins), dtype=wf.dtype, device=wf.device) - 1
 for n in trange(100):
-    for m in range(n_samples_batched):
+    for m in range(n_samples_sequential):
         sns = batched_draw_next(wf, sns, n_iter=16)
