@@ -37,12 +37,24 @@ def batched_draw_next(wf, x0, n_flip=1, n_iter=2**4):
             spin_vectors[idxs, :] = next_spin_vectors[idxs, :]
     return spin_vectors
 
-n_spins, n_samples, n_batch = 128, 2**12, 2**0
+n_spins, n_samples, n_batch = 128, 2**12, 2**12
 n_samples_sequential = n_samples//n_batch
-wf = torch.compile(RBM(n_spins, n_spins, device='cpu'))
+wf = torch.compile(RBM(n_spins, n_spins, device='cuda'))
 ic(n_batch, n_spins, n_samples, n_samples_sequential, wf.n_param)
 
 sns = 2.0*torch.randint(0, 2, (n_batch, n_spins), dtype=wf.dtype, device=wf.device) - 1
-for n in trange(100):
-    for m in range(n_samples_sequential):
-        sns = batched_draw_next(wf, sns, n_iter=16)
+sns = batched_draw_next(wf, sns, n_iter=2**4)  # warmup
+with Profiler() as profiler:
+    for n in trange(100):
+        for m in range(n_samples_sequential):
+            sns = batched_draw_next(wf, sns, n_iter=2**4)
+profiler.print()
+
+
+bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
+sns = bdraw_next(sns)  # warmup
+with Profiler() as profiler:
+    for n in trange(100):
+        for m in range(n_samples_sequential):
+            sns = bdraw_next(sns)
+profiler.print()
