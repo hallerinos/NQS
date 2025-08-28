@@ -62,6 +62,15 @@ class RBM(torch.nn.Module):
         self.Oc = Oc
         self.OW = OW
 
+    @torch.compile(fullgraph=True)
+    def bassign_derivatives(self, x):
+        theta = self.c + torch.einsum('ij,kj->ki', self.W, x)
+        Ob = x
+        Oc = torch.tanh(theta)
+        OW = torch.einsum('kl,km->klm', Oc, x)
+
+        self.gradients = torch.cat((Ob, Oc, OW.flatten(start_dim=1)), dim=1)
+
     def assign_gradients(self):
         self.gradients = torch.cat((self.b.grad, self.c.grad, self.W.grad.flatten()))
 
