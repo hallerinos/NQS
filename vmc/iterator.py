@@ -2,6 +2,7 @@ import torch
 from sampler.mcmc import draw_next
 from tqdm import trange
 from icecream import ic
+from ansatz.RBM import derivatives
 
 
 @torch.compile(fullgraph=True)
@@ -42,15 +43,13 @@ class MCBlock:
             # ic(torch.norm(self.OK[n, :] - check))
 
     @torch.compile(fullgraph=True)
-    def bsample_block(self, wf, n_block, n_iter=2**4, n_discard=2**4):
+    def bsample_block(self, wf, n_block, n_iter=2**4):
         bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=n_iter), randomness='different'))
         blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
-
-        for i in range(n_discard):
-            self.samples = bdraw_next(self.samples)
+        vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
 
         self.samples = bdraw_next(self.samples)
         self.EL = blocal_energy(self.samples)
 
-        wf.bassign_derivatives(self.samples)
-        self.OK = wf.gradients
+        self.OK = vmgrad(self.samples)
+        # self.OK = wf.gradients

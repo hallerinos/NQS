@@ -116,3 +116,12 @@ class RBM(torch.nn.Module):
         val = x_diff @ self.b + torch.sum(log_diff, dim=0) 
         val = val.detach()  # without this line we have a memory leak ???
         return torch.exp(val)
+
+@torch.compile(fullgraph=True)
+def derivatives(wf: RBM, x):
+    theta = wf.c + wf.W @ x
+    Ob = x
+    Oc = torch.tanh(theta)
+    OW = Oc[:, None] @ x[None, :]
+
+    return torch.cat((Ob, Oc, OW.flatten()))
