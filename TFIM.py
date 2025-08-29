@@ -9,6 +9,8 @@ from vmc.minSR import minSR
 from vmc.SR import SR, SR_
 import numpy as np
 from energies.TFIM import local_energy
+# torch.manual_seed(0)
+
 
 def energy_single_p_mode(h_t, P):
     return np.sqrt(1 + h_t**2 - 2 * h_t * np.cos(P))
@@ -20,21 +22,24 @@ def ground_state_energy_per_site(h_t, N):
     return - 1 / N * np.sum(energies_p_modes)
 
 if __name__ == "__main__":
-    device = "cuda"
+    device = "cpu"
     dtype = torch.double
 
     print(torch.__version__)
 
-    n_spins = 100  # spin sites
+    n_spins = 2**4  # spin sites
     alpha = 1
     n_hidden = alpha * n_spins  # neurons in hidden layer
-    n_block = 2**10  # samples / expval
-    n_epoch = 100  # variational iterations
+    n_block = 2**12  # samples / expval
+    n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
-    eta = 0.01  # learning rate
+    eta = 0.1  # learning rate
+
+    E_exact = ground_state_energy_per_site(g, n_spins)
+    ic(E_exact)
 
     # wf = JST(n_spins, dtype=dtype, device=device)
-    wf = torch.compile(RBM(n_spins, n_hidden, dtype=dtype, device=device))
+    wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
     ic(wf.n_param)
 
     epochbar = trange(n_epoch)
@@ -43,7 +48,7 @@ if __name__ == "__main__":
     with Profiler(interval=0.1) as profiler:
         block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g))
         for epoch in epochbar:
-            block.sample_block(wf, n_block)
+            block.bsample_block(wf, n_block, n_iter=8, n_discard=0)
 
             Eav = torch.mean(block.EL, dim=0)
             Okm = torch.mean(block.OK, dim=0)
@@ -52,14 +57,13 @@ if __name__ == "__main__":
             Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            wf.update_params(minSR(Okbar, epsbar, torch.tensor(eta, dtype=wf.dtype, device=wf.device)))
+            wf.update_params(SR(Okbar, epsbar, torch.tensor(eta, dtype=wf.dtype, device=wf.device), diag_reg=1e-4))
 
             E_var = torch.conj(epsbar) @ epsbar
-            # Eavs[epoch] = Eav  # for some reason, this causes a memory leak...
-            # eta /= 2 if (epoch % 50 == 0) and epoch > 0 else 1
+            Eavs[epoch] = Eav.detach().item()  # for some reason, this causes a memory leak...
             epochbar.set_description(
                 f"Epoch {epoch}, E {Eav.detach()/n_spins}, V {E_var.detach()}"
             )
     profiler.write_html('our_profiler.html')
 
-ic((Eav.detach()/n_spins - ground_state_energy_per_site(g, n_spins)))
+ic((Eav.detach()/n_spins - E_exact))

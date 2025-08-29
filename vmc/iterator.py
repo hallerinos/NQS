@@ -7,16 +7,14 @@ from icecream import ic
 class MCBlock:
     def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y: 1):
         self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
-        self.samples = torch.zeros(
-            n_block, wf.n_spins, dtype=wf.dtype, device=wf.device
-        )
+        self.samples = 2.0*torch.randint(0, 2, (n_block, wf.n_spins), dtype=wf.dtype, device=wf.device) - 1.0
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
-        self.sample_block(wf, n_block, verbose)
+        # self.sample_block(wf, n_block, verbose)
 
-    def sample_block(self, wf, n_block, verbose=0, n_dismiss=16):
+    def sample_block(self, wf, n_block, verbose=0, n_discard=2**4, n_iter=2**4):
         spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device, dtype=wf.dtype) - 1.0
-        for n in range(n_dismiss):
+        for n in range(n_discard):
             spin_vector = draw_next(wf, spin_vector, n_flip=1, n_iter=4)
 
         if verbose > 0:
@@ -41,11 +39,15 @@ class MCBlock:
             self.OK[n, :] = wf.gradients.conj()
             # ic(torch.norm(self.OK[n, :] - check))
 
-    def batch_sample_block(self, wf, n_block, verbose=0, n_dismiss=10):
-        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
-        blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
-        sns = 2.0*torch.randint(0, 2, (n_block, wf.n_spins), dtype=wf.dtype, device=wf.device) - 1
-        self.samples = bdraw_next(sns)
-        self.EL = blocal_energy(sns)
-        wf.bassign_derivatives(sns)
+    def bsample_block(self, wf, n_block, n_iter=2**4, n_discard=2**4):
+        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=n_iter), randomness='different')
+        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
+
+        for i in range(n_discard):
+            self.samples = bdraw_next(self.samples)
+
+        self.samples = bdraw_next(self.samples)
+        self.EL = blocal_energy(self.samples)
+
+        wf.bassign_derivatives(self.samples)
         self.OK = wf.gradients
