@@ -22,7 +22,7 @@ def ground_state_energy_per_site(h_t, N):
     return - 1 / N * np.sum(energies_p_modes)
 
 if __name__ == "__main__":
-    device = "cpu"
+    device = "cuda"
     dtype = torch.double
 
     print(torch.__version__)
