@@ -6,7 +6,7 @@ from vmc.iterator import MCBlock
 from icecream import ic
 from pyinstrument import Profiler
 from vmc.minSR import minSR
-from vmc.SR import SR, SR_
+from vmc.SR import SR, SR_, SR__
 import numpy as np
 from energies.TFIM import local_energy
 # torch.manual_seed(0)
@@ -23,11 +23,11 @@ def ground_state_energy_per_site(h_t, N):
 
 if __name__ == "__main__":
     device = "cuda"
-    dtype = torch.double
+    dtype = torch.float32
 
     print(torch.__version__)
 
-    n_spins = 2**4  # spin sites
+    n_spins = 2**6  # spin sites
     alpha = 1
     n_hidden = alpha * n_spins  # neurons in hidden layer
     n_block = 2**14  # samples / expval
@@ -61,15 +61,16 @@ if __name__ == "__main__":
             epsbar = (block.EL - Eav) / n_block**0.5
 
             dTh = SR(Okbar, epsbar, diag_reg=1e-4)
-            # dTh = Okbar.conj().T @ epsbar
+            # dTh = 2 * Okbar.conj().T @ epsbar
             wf.update_params(-eta * dTh)
 
             E_var = torch.conj(epsbar) @ epsbar
             edens = Eav.detach().cpu().item()/n_spins
             Eavs[epoch] = edens
             epochbar.set_description(
-                f"Epoch: {epoch}, E/N: {np.round(edens, decimals=5)}, \u03C3: {np.round(E_var.detach().cpu(), decimals=5)}"
+                f"E/N: {np.round(edens, decimals=4)}, \u03C3: {np.round(E_var.detach().cpu(), decimals=4)}"
             )
     profiler.write_html('our_profiler.html')
+    print(Eavs)
 
 # ic((Eav.detach()/n_spins - E_exact))

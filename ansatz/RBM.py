@@ -37,12 +37,12 @@ class RBM(torch.nn.Module):
 
         with torch.no_grad():
             self.b += b
-            renorm = self.b.norm()
-            self.b /= renorm
+            # renorm = self.b.norm()
+            # self.b /= renorm
             self.c += c
-            self.c /= renorm
+            # self.c /= renorm
             self.W += W
-            self.W /= renorm
+            # self.W /= renorm
             self.reset_gattr()
 
     @torch.compile(fullgraph=False)

@@ -22,7 +22,7 @@ def minSR_(Okbar, epsbar, eta, thresh=1e-12):
         @ epsbar
         )
     
-    return deltaTheta
+    return 2 * deltaTheta
 
 @torch.compile(fullgraph=False)
 def minSR(Okbar, epsbar, diag_reg=1e-12):
@@ -33,4 +33,4 @@ def minSR(Okbar, epsbar, diag_reg=1e-12):
 
     deltaTheta = Okbarc @ Tpinvepsbar
 
-    return deltaTheta
+    return 2 * deltaTheta
