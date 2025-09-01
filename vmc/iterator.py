@@ -5,7 +5,7 @@ from icecream import ic
 from ansatz.RBM import derivatives
 
 
-@torch.compile(fullgraph=True)
+@torch.compile(fullgraph=False)
 class MCBlock:
     def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y: 1):
         self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
@@ -14,7 +14,7 @@ class MCBlock:
         self.local_energy = local_energy
         # self.sample_block(wf, n_block, verbose)
 
-    @torch.compile(fullgraph=True)
+    # @torch.compile(fullgraph=False)
     def sample_block(self, wf, n_block, verbose=0, n_discard=2**4, n_iter=2**4):
         spin_vector = 2 * torch.randint(2, [wf.n_spins], device=wf.device, dtype=wf.dtype) - 1.0
         for n in range(n_discard):
@@ -31,9 +31,9 @@ class MCBlock:
             self.EL[n] = self.local_energy(wf, spin_vector)
 
 
-            # wf.assign_derivatives(spin_vector)
-            # self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
-            # continue
+            wf.assign_derivatives(spin_vector)
+            self.OK[n, :] = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
+            continue
             # check = torch.cat((wf.Ob, wf.Oc, wf.OW.flatten()))
 
             wf.reset_gattr()  # reset gradients before calling backward
@@ -42,7 +42,7 @@ class MCBlock:
             self.OK[n, :] = wf.gradients.conj()
             # ic(torch.norm(self.OK[n, :] - check))
 
-    @torch.compile(fullgraph=True)
+    @torch.compile(fullgraph=False)
     def bsample_block(self, wf, n_block, n_iter=2**4):
         bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=n_iter), randomness='different'))
         blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))

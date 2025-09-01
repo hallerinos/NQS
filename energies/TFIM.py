@@ -1,7 +1,7 @@
 import torch
 from ansatz.RBM import RBM
 
-@torch.compile(fullgraph=True)
+@torch.compile(fullgraph=False)
 def local_energy(wf: RBM, spin_vector: torch.Tensor, J=-1, h=-1):
     interactions = spin_vector[1:] @ spin_vector[:-1]
     interactions += spin_vector[0] * spin_vector[-1]  # pbc

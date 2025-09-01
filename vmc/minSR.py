@@ -24,9 +24,9 @@ def minSR_(Okbar, epsbar, eta, thresh=1e-12):
     
     return deltaTheta
 
-@torch.compile(fullgraph=True)
+@torch.compile(fullgraph=False)
 def minSR(Okbar, epsbar, diag_reg=1e-12):
-    # Tpinv = torch.linalg.pinv(Okbar@Okbar.T.conj(), rtol=thresh, hermitian=True)
+    # Tpinv = torch.linalg.pinv(Okbar@Okbar.T.conj(), rtol=thresh, hermitian=False)
     # Tpinvepsbar = Tpinv @ epsbar
     Okbarc = Okbar.T.conj()
     Tpinvepsbar = torch.linalg.solve(Okbar@Okbarc + diag_reg*torch.eye(Okbar.shape[0], dtype=Okbar.dtype, device=Okbar.device), epsbar)  # see https://docs.pytorch.org/docs/stable/generated/torch.linalg.solve_ex.html#torch.linalg.solve_ex (and without the _ex)

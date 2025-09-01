@@ -1,6 +1,6 @@
 import torch
 
-@torch.compile(fullgraph=True)
+@torch.compile(fullgraph=False)
 def draw_trial(spin_vector, nflip):
     spin_vector_flipped = spin_vector.detach().clone()
     # Generate all random indices at once
@@ -18,7 +18,7 @@ def rho(sample1, sample2):
     covd2 = torch.mean((sample2 - avsample2)**2, dim=0) / (sample2.shape[0] - 1)
     return covod / torch.sqrt(covd1 * covd2), covod, covd1, covd2
 
-@torch.compile(fullgraph=True)
+@torch.compile(fullgraph=False)
 def draw_next(wf, x0, n_flip=1, n_iter=10):
     spin_vector = x0.detach().clone()
     # Generate all random numbers upfront

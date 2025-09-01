@@ -27,11 +27,11 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**6  # spin sites
+    n_spins = 2**4  # spin sites
     alpha = 1
     n_hidden = alpha * n_spins  # neurons in hidden layer
     n_block = 2**14  # samples / expval
-    n_epoch = 2**14  # variational iterations
+    n_epoch = 2**8  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
     eta = torch.tensor(0.01, device=device, dtype=dtype)  # learning rate
 
@@ -60,14 +60,15 @@ if __name__ == "__main__":
             # Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            # dTh = SR(Okbar, epsbar, diag_reg=1e-4)
-            dTh = Okbar.conj().T @ epsbar
+            dTh = SR(Okbar, epsbar, diag_reg=1e-4)
+            # dTh = Okbar.conj().T @ epsbar
             wf.update_params(-eta * dTh)
 
             E_var = torch.conj(epsbar) @ epsbar
-            # Eavs[epoch] = Eav.detach().item()  # for some reason, this causes a memory leak...
+            edens = Eav.detach().cpu().item()/n_spins
+            Eavs[epoch] = edens
             epochbar.set_description(
-                f"Epoch {epoch}, E {Eav.detach()/n_spins}, V {E_var.detach()}"
+                f"Epoch: {epoch}, E/N: {np.round(edens, decimals=5)}, \u03C3: {np.round(E_var.detach().cpu(), decimals=5)}"
             )
     profiler.write_html('our_profiler.html')
 
