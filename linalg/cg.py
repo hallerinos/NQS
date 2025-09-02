@@ -2,7 +2,7 @@ import torch
 from pyinstrument import Profiler
 from tqdm import trange
 
-def cg(afun, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-12):
+def cg(afun, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
     xi = x0.clone()
     axi = afun(xi)
     pi = k - axi
@@ -23,17 +23,18 @@ def cg(afun, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-12):
     return xi
 
 if __name__ == "__main__":    
-    m, n, dtype = int(333), int(3333), torch.double
+    m, n, dtype = int(1111), int(11111), torch.double
     Ok = torch.randn((m, n), dtype=dtype)
     Amat = (Ok.T.conj() @ Ok)
     # Amat = (Ok @ Ok.T.conj())
 
-    Amat = Amat + 1e-4*torch.eye(Amat.shape[0], dtype=Ok.dtype)
+    Amat = Amat + 1e-3*torch.eye(Amat.shape[0], dtype=Ok.dtype)
     # Amat = Amat + Amat.T.conj()
     print(Amat.shape)
     b = torch.randn((Amat.shape[1],), dtype=Amat.dtype)
 
-    bar1 = trange(100)
+    print('Using torch.linalg.solve')
+    bar1 = trange(4)
     with Profiler(interval=0.1) as profiler:
         for _ in bar1:
             x0 = torch.randn((Amat.shape[1],), dtype=Amat.dtype)
@@ -43,7 +44,7 @@ if __name__ == "__main__":
             )
 
     print('Starting CG using matrix-vector multiplication')
-    bar2 = trange(100)
+    bar2 = trange(4)
     with Profiler(interval=0.1) as profiler:
         for _ in bar2:
             x0 = torch.randn((Amat.shape[1],), dtype=Amat.dtype)
@@ -54,7 +55,7 @@ if __name__ == "__main__":
 
 
     print('Starting CG using regularized vec-vec multiplication')
-    bar3 = trange(100)
+    bar3 = trange(4)
     myfun = lambda vec: Ok.T.conj() @ (Ok @ vec) + 1e-4*vec
     with Profiler(interval=0.1) as profiler:
         for _ in bar3:
