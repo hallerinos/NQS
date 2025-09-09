@@ -1,7 +1,7 @@
 import torch
 from icecream import ic
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 class RBM(torch.nn.Module):
     def __init__(self, n_spins, n_hidden, dtype=torch.float64, device="cuda") -> None:
         super().__init__()
@@ -27,15 +27,14 @@ class RBM(torch.nn.Module):
         self.c = (c/rn).detach().clone().requires_grad_()
         self.W = (W/rn).detach().clone().requires_grad_()
 
-    @torch.compile(fullgraph=False)
     def update_params(self, all_params):
-        b = all_params[: self.n_spins]
-        c = all_params[self.n_spins : self.n_spins + self.n_hidden]
-        W = torch.reshape(
-            all_params[self.n_spins + self.n_hidden :], (self.n_hidden, self.n_spins)
-        )
-
         with torch.no_grad():
+            b = all_params[: self.n_spins]
+            c = all_params[self.n_spins : self.n_spins + self.n_hidden]
+            W = torch.reshape(
+                all_params[self.n_spins + self.n_hidden :], (self.n_hidden, self.n_spins)
+            )
+
             self.b += b
             # renorm = self.b.norm()
             # self.b /= renorm
@@ -45,7 +44,7 @@ class RBM(torch.nn.Module):
             # self.W /= renorm
             self.reset_gattr()
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def reset_gattr(self):
         self.b.grad = torch.zeros_like(self.b)
         self.c.grad = torch.zeros_like(self.c)
