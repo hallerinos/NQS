@@ -24,7 +24,7 @@ def minSR_(Okbar, epsbar, eta, thresh=1e-12):
     
     return 2 * deltaTheta
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 def minSR(Okbar, epsbar, diag_reg=1e-12):
     # Tpinv = torch.linalg.pinv(Okbar@Okbar.T.conj(), rtol=thresh, hermitian=False)
     # Tpinvepsbar = Tpinv @ epsbar

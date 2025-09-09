@@ -23,9 +23,9 @@ class RBM(torch.nn.Module):
 
         rn = torch.norm(b)
 
-        self.b = (b/rn).detach().clone().requires_grad_()
-        self.c = (c/rn).detach().clone().requires_grad_()
-        self.W = (W/rn).detach().clone().requires_grad_()
+        self.b = (b/rn)
+        self.c = (c/rn)
+        self.W = (W/rn)
 
     def update_params(self, all_params):
         with torch.no_grad():
@@ -88,6 +88,10 @@ class RBM(torch.nn.Module):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
 
     @torch.compile(fullgraph=False)
+    def logprob(self, x, bcw):
+        return bcw[:self.n_spins] @ x + torch.sum(torch.log(2 * torch.cosh(bcw[self.n_spins:self.n_spins+self.n_hidden] + bcw[self.n_spins+self.n_hidden:].reshape((self.n_hidden, self.n_spins)) @ x)))
+
+    @torch.compile(fullgraph=False)
     def logprob_(self, x):
         return self.b.conj() @ x + torch.sum(
             torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
@@ -124,3 +128,9 @@ def derivatives(wf: RBM, x):
     OW = Oc[:, None] @ x[None, :]
 
     return torch.cat((Ob, Oc, OW.flatten()))
+
+@torch.compile(fullgraph=False)
+def autograd(wf: RBM, x):
+    dth = torch.func.grad(lambda bcw: wf.logprob(x, bcw).real)(wf.get_params())
+
+    return dth.conj()
