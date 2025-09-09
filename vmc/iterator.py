@@ -5,7 +5,7 @@ from icecream import ic
 from ansatz.RBM import derivatives
 
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 class MCBlock:
     def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y: 1):
         self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
