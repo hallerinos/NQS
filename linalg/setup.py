@@ -6,8 +6,7 @@ __version__ = "0.0.1"
 # Define the C++ extension modules
 ext_modules = [
     CUDAExtension('cusolve', [
-        'roll_call.cu',
-        'roll_call_binding.cpp',
+        'myadd.cpp',
     ])
 ]
 
