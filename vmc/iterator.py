@@ -2,17 +2,18 @@ import torch
 from sampler.mcmc import draw_next
 from tqdm import trange
 from icecream import ic
-from ansatz.RBM import derivatives
+from ansatz.RBM import derivatives, autograd
+import torch._dynamo
+torch._dynamo.config.suppress_errors = True
 
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 class MCBlock:
-    def __init__(self, wf, n_block, verbose=0, local_energy=lambda x, y: 1):
+    def __init__(self, wf, n_block, local_energy=lambda x, y: 1):
         self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
         self.samples = 2.0*torch.randint(0, 2, (n_block, wf.n_spins), dtype=wf.dtype, device=wf.device) - 1.0
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
-        # self.sample_block(wf, n_block, verbose)
 
     # @torch.compile(fullgraph=False)
     def sample_block(self, wf, n_block, verbose=0, n_discard=2**4, n_iter=2**4):
@@ -43,13 +44,32 @@ class MCBlock:
             # ic(torch.norm(self.OK[n, :] - check))
 
     @torch.compile(fullgraph=False)
-    def bsample_block(self, wf, n_block, n_iter=2**4):
-        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=n_iter), randomness='different'))
+    def bsample_block(self, wf, n_res=4):
+        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
         blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
-        vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
+        # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
+        vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
 
-        self.samples = bdraw_next(self.samples)
+        for _ in range(n_res):
+            self.samples = bdraw_next(self.samples)
         self.EL = blocal_energy(self.samples)
 
-        self.OK = vmgrad(self.samples)
+        self.OK = vmagrad(self.samples)
         # self.OK = wf.gradients
+
+    # @torch.compile(fullgraph=False)
+    def warmup(self, wf, tol=1e-2, verbose=False):
+        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_iter=2**4), randomness='different'))
+        blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
+
+        pEav = torch.mean(self.EL)
+        Eav = torch.mean(self.EL)
+        crit = torch.ones_like(pEav).item()
+        while crit > tol:
+            pEav = Eav
+            self.samples = bdraw_next(self.samples)
+            self.EL = blocal_energy(self.samples)
+            Eav = torch.mean(self.EL)
+            crit = torch.abs(pEav - Eav).item()
+            if verbose:
+                print(crit)

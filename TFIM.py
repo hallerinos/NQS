@@ -23,17 +23,17 @@ def ground_state_energy_per_site(h_t, N):
 
 if __name__ == "__main__":
     device = "cuda"
-    dtype = torch.float32
+    dtype = torch.float64
 
     print(torch.__version__)
 
-    n_spins = 2**6  # spin sites
-    alpha = 1
-    n_hidden = alpha * n_spins  # neurons in hidden layer
-    n_block = 2**14  # samples / expval
-    n_epoch = 2**8  # variational iterations
+    n_spins = 2**4  # spin sites
+    alpha = 10
+    n_hidden = int(alpha * n_spins)  # neurons in hidden layer
+    n_block = 2**12  # samples / expval
+    n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
-    eta = torch.tensor(0.01, device=device, dtype=dtype)  # learning rate
+    eta = torch.tensor(0.005, device=device, dtype=dtype)  # learning rate
 
     E_exact = ground_state_energy_per_site(g, n_spins)
     ic(E_exact)
@@ -42,14 +42,14 @@ if __name__ == "__main__":
     wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
     ic(n_epoch, n_block, wf.n_param)
 
-    epochbar = trange(n_epoch)
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
+    block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g))
+    block.warmup(wf, tol=1e-2, verbose=1)
+    epochbar = trange(n_epoch)
     with Profiler(interval=0.1) as profiler:
-        block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g))
-        block.bsample_block(wf, n_block, n_iter=n_spins)
         for epoch in epochbar:
-            block.bsample_block(wf, n_block, n_iter=4)
+            block.bsample_block(wf, n_res=8)
 
             # continue
 
@@ -59,8 +59,10 @@ if __name__ == "__main__":
             Okbar = (block.OK - Okm) / n_block**0.5
             # Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
-
-            dTh = SR(Okbar, epsbar, diag_reg=1e-4)
+            if n_block > wf.n_param:
+                dTh = SR(Okbar, epsbar, diag_reg=1e-4)
+            else:
+                dTh = minSR(Okbar, epsbar, diag_reg=1e-4)
             # dTh = 2 * Okbar.conj().T @ epsbar
             wf.update_params(-eta * dTh)
 
