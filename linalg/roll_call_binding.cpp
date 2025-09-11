@@ -1,5 +1,4 @@
-// #include <torch/extension.h>
-#include <pybind11/pybind11.h>
+#include <torch/extension.h>
 
 // Declare the roll_call_launcher function
 void mlauncher();
@@ -9,10 +8,17 @@ void roll_call_binding() {
     mlauncher();
 }
 
-PYBIND11_MODULE(cusolve, m) {
+void ai_launcher(torch::Tensor& in);
+
+// Write the C++ function that we will call from Python
+void array_increment_binding(torch::Tensor& in) {
+    ai_launcher(in);
+}
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
-    "roll_call", // Name of the Python function to create
-    &roll_call_binding, // Corresponding C++ function to call
-    "Launches the kernel" // Docstring
+    "array_increment", // Name of the Python function to create
+    &array_increment_binding, // Corresponding C++ function to call
+    "Launches the array_increment kernel" // Docstring
   );
 }

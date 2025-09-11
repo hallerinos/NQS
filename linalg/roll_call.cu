@@ -1,17 +1,18 @@
 #include <stdio.h>
+#include <iostream>
+#include <torch/extension.h>
 
-__global__ void roll_call() {
-	const int threadIndex = threadIdx.x;
-	printf("Thread %d here!\n", threadIndex);
+__global__ void array_increment(int* in) {
+    const int threadIndex = threadIdx.x;
+    in[threadIndex] = in[threadIndex] + 1;
 }
 
-__global__ void sm_roll_call() {
-	const int threadIndex = threadIdx.x;
-	
-	uint streamingMultiprocessorId;
-	asm("mov.u32 %0, %smid;" : "=r"(streamingMultiprocessorId) );
-	
-	printf("Thread %d running on SM %d!\n", threadIndex, streamingMultiprocessorId);
+void ai_launcher(torch::Tensor& in) {
+	std::cout << "features shape = " << in.sizes() << "\n";
+	const int as0 = in.size(0);
+	const int as1 = in.size(1);
+	// <<<thread blocks, threads>>>
+	array_increment<<<as0, as1>>>(in.data_ptr<int>());
 }
 
 __global__ void warp_roll_call() {
@@ -28,11 +29,6 @@ __global__ void warp_roll_call() {
 	asm volatile ("mov.u32 %0, %laneid;" : "=r"(laneId));
 	
 	printf("SM: %d | Warp: %d | Lane: %d | Thread %d - Here!\n", streamingMultiprocessorId, warpId, laneId, threadIndex);
-}
-
-__global__ void array_increment(int* in) {
-	const int threadIndex = threadIdx.x;
-	in[threadIndex] = in[threadIndex] + 1;
 }
 
 void printArray(int* array, int arraySize) {
