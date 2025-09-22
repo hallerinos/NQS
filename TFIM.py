@@ -27,8 +27,8 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**4  # spin sites
-    alpha = 10
+    n_spins = 2**7  # spin sites
+    alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
     n_block = 2**12  # samples / expval
     n_epoch = 2**10  # variational iterations
@@ -40,30 +40,37 @@ if __name__ == "__main__":
 
     # wf = JST(n_spins, dtype=dtype, device=device)
     wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
-    ic(n_epoch, n_block, wf.n_param)
+    ic(n_epoch, n_block, n_spins, wf.n_param)
 
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
     block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g))
-    block.warmup(wf, tol=1e-2, verbose=1)
+    # block.warmup(wf, tol=1e-1, verbose=1)
     epochbar = trange(n_epoch)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block(wf, n_res=8)
-
-            # continue
+            block.bsample_block_no_grad(wf, n_res=8)
 
             Eav = torch.mean(block.EL, dim=0)
-            Okm = torch.mean(block.OK, dim=0)
-
-            Okbar = (block.OK - Okm) / n_block**0.5
-            # Okm = None  # free memory
             epsbar = (block.EL - Eav) / n_block**0.5
-            if n_block > wf.n_param:
-                dTh = SR(Okbar, epsbar, diag_reg=1e-4)
-            else:
-                dTh = minSR(Okbar, epsbar, diag_reg=1e-4)
+
+            # Okm = torch.mean(block.OK, dim=0)
+            # Okbar = (block.OK - Okm) / n_block**0.5
+            # Okm = None  # free memory
             # dTh = 2 * Okbar.conj().T @ epsbar
+            # if n_block > wf.n_param:
+            #     dTh = SR(Okbar, epsbar, diag_reg=1e-4)
+            # else:
+            #     dTh = minSR(Okbar, epsbar, diag_reg=1e-4)
+
+            vlogpsi = torch.vmap(wf.logprob, in_dims=(0, None))
+            f = lambda *primals: vlogpsi(block.samples, *primals)
+            _, vjp = torch.func.vjp(f, wf.get_params())
+            dTh = vjp(block.EL)[0] / n_block
+            fav = lambda *primals: vlogpsi(block.samples, *primals).mean()
+            _, vjpav = torch.func.vjp(fav, wf.get_params())
+            dTh = 2*(dTh - vjpav(Eav)[0])
+
             wf.update_params(-eta * dTh)
 
             E_var = torch.conj(epsbar) @ epsbar

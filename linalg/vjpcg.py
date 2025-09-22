@@ -36,19 +36,18 @@ def bicg(x0: torch.Tensor, f: Callable[[torch.Tensor], torch.NumberType]) -> tor
 
 if __name__ == "__main__":
 
-    nbatch, nspins, nhidden = 2**8, 2**8, 2**8
-    ic(nbatch, nspins, nhidden)
+    nbatch, nspins, nhidden = 2**14, 2**4, 2**4
+    nparam = nspins+nhidden+nhidden*nspins
+    ic(nbatch, nspins, nparam)
 
-    x0 = torch.rand((nbatch, nspins, ))
-    b = torch.rand((nspins, ))
-    c = torch.rand((nhidden, ))
-    W = torch.rand((nhidden, nspins, ))
+    x0 = (2*torch.randint(0, 2, (nbatch, nspins, )) - 1.0).to('cuda')
+    b = torch.rand((nspins, )).to('cuda')
+    c = torch.rand((nhidden, )).to('cuda')
+    W = torch.rand((nhidden, nspins, )).to('cuda')
 
-    # val, vjp = torch.func.vjp(logpsi, b, c, W)
-    # ic(vjp(x0, b, c, W))
+    vEloc = torch.compile(torch.vmap(local_energy, in_dims=(0, *(3*[None]))))
+    vlogpsi = torch.compile(torch.vmap(logpsi, in_dims=(0, *(3*[None]))))
     for _ in trange(100):
-        vlogpsi = torch.vmap(logpsi, in_dims=(0, *(3*[None])))
-        vEloc = torch.vmap(lambda x: local_energy(x, b, c, W))
         f = lambda *primals: vlogpsi(x0, *primals)
         val, vjp = torch.func.vjp(f, b, c, W)
-        vjp(vEloc(x0))
+        vjp(vEloc(x0, b, c, W))

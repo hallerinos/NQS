@@ -12,7 +12,7 @@ from energies.TFIM import local_energy
 torch._dynamo.config.capture_dynamic_output_shape_ops = True
 
 
-@torch.compile(fullgraph=True)
+# @torch.compile(fullgraph=True)
 def batched_draw_trial(spin_vectors, nflip=1):
     nflips = nflip * spin_vectors.shape[0]
     spin_vectors_flipped = spin_vectors.detach().clone()
@@ -23,7 +23,7 @@ def batched_draw_trial(spin_vectors, nflip=1):
     spin_vectors_flipped[i0, i1] *= -1
     return spin_vectors_flipped
 
-@torch.compile(fullgraph=True, dynamic=True)
+# @torch.compile(fullgraph=True, dynamic=True)
 def batched_draw_next(wf, x0, n_flip=1, n_iter=2**4):
     spin_vectors = x0.detach().clone()
     # Generate all random numbers upfront
@@ -39,7 +39,8 @@ def batched_draw_next(wf, x0, n_flip=1, n_iter=2**4):
 
 n_spins, n_samples, n_batch = 128, 2**12, 2**12
 n_samples_sequential = n_samples//n_batch
-wf = torch.compile(RBM(n_spins, n_spins, device='cuda'))
+# wf = torch.compile(RBM(n_spins, n_spins, device='cuda'))
+wf = RBM(n_spins, n_spins, device='cuda')
 ic(n_batch, n_spins, n_samples, n_samples_sequential, wf.n_param)
 
 sns = 2.0*torch.randint(0, 2, (n_batch, n_spins), dtype=wf.dtype, device=wf.device) - 1
@@ -51,7 +52,8 @@ with Profiler() as profiler:
 profiler.print()
 
 
-bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
+# bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
+bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different')
 sns = bdraw_next(sns)  # warmup
 with Profiler() as profiler:
     for n in trange(100):
