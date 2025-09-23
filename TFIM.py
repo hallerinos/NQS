@@ -10,6 +10,28 @@ from vmc.SR import SR, SR_, SR__
 import numpy as np
 from energies.TFIM import local_energy
 # torch.manual_seed(0)
+from torch import Tensor
+from linalg.cg import cg
+
+class T():
+    def __init__(self, f, wf):
+        # f: the function used to define the variational derivatives on
+        self.f = f
+        self.wf = wf
+
+    def __matmul__(self, v):
+        _, jvp_out = torch.func.jvp(self.f, (self.wf.get_params(),), (v,))
+        return jvp_out
+
+class S():
+    def __init__(self, f, wf):
+        # f: the function used to define the variational derivatives on
+        self.f = f
+        self.wf = wf
+
+    def __matmul__(self, v):
+        _, vjp = torch.func.vjp(self.f, self.wf.get_params())
+        return vjp(v)[0]
 
 
 def energy_single_p_mode(h_t, P):
@@ -27,7 +49,7 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**7  # spin sites
+    n_spins = 2**4  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
     n_block = 2**12  # samples / expval
@@ -45,18 +67,19 @@ if __name__ == "__main__":
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0
     block = MCBlock(wf, n_block, local_energy=lambda x, y: local_energy(x, y, J=-1, h=-g))
-    # block.warmup(wf, tol=1e-1, verbose=1)
+    block.warmup(wf, tol=1e-1, verbose=1)
     epochbar = trange(n_epoch)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block_no_grad(wf, n_res=8)
+            block.bsample_block(wf, n_res=8)
+            # block.bsample_block_no_grad(wf, n_res=8)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            # Okm = torch.mean(block.OK, dim=0)
-            # Okbar = (block.OK - Okm) / n_block**0.5
-            # Okm = None  # free memory
+            Okm = torch.mean(block.OK, dim=0)
+            Okbar = (block.OK - Okm) / n_block**0.5
+            Okm = None  # free memory
             # dTh = 2 * Okbar.conj().T @ epsbar
             # if n_block > wf.n_param:
             #     dTh = SR(Okbar, epsbar, diag_reg=1e-4)
@@ -66,10 +89,24 @@ if __name__ == "__main__":
             vlogpsi = torch.vmap(wf.logprob, in_dims=(0, None))
             f = lambda *primals: vlogpsi(block.samples, *primals)
             _, vjp = torch.func.vjp(f, wf.get_params())
+
             dTh = vjp(block.EL)[0] / n_block
             fav = lambda *primals: vlogpsi(block.samples, *primals).mean()
             _, vjpav = torch.func.vjp(fav, wf.get_params())
             dTh = 2*(dTh - vjpav(Eav)[0])
+
+
+            qmetr = S(f, wf)
+            ov = torch.ones(wf.n_param, device=device, dtype=dtype)
+            ov2 = torch.ones(wf.n_param, device=device, dtype=dtype)
+
+            _, jvp_out = torch.func.jvp(f, (wf.get_params(),), (ov,))
+
+            ic(torch.allclose(qmetr @ jvp_out, (block.OK.T.conj() @ block.OK) @ ov2))
+            exit()
+            # x0 = torch.randn(wf.n_param, device=device, dtype=dtype)
+            # ic(kernel @ (kernel @ x0))
+            # cg(kernel, epsbar, x0)
 
             wf.update_params(-eta * dTh)
 
