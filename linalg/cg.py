@@ -2,20 +2,21 @@ import torch
 from pyinstrument import Profiler
 from tqdm import trange
 
-def cg(afun, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
+# @torch.compile(dynamic=True, options={"trace.enabled":False})
+def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
     xi = x0.clone()
-    axi = afun @ xi
+    axi = fwmm @ xi
     pi = k - axi
     ri = pi.clone()
     for i in range(1, max_iter):
-        api = afun @ pi
-        rinsq = ri.T.conj() @ ri
-        ai = rinsq / (pi.T.conj() @ api).item()
+        api = fwmm @ pi
+        rinsq = ri.conj() @ ri
+        ai = rinsq / (pi.conj() @ api).item()
         xi = xi + ai.item() * pi
         rip = ri.clone()
         ri = ri - ai.item() * api
         rinsqp = rinsq.clone()
-        rinsq = ri.T.conj() @ ri
+        rinsq = ri.conj() @ ri
         if rinsq.item() < tol:
             return xi
         bi = rinsq.item() / rinsqp.item()
