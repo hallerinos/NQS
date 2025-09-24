@@ -31,7 +31,8 @@ class S():
 
     def __matmul__(self, v):
         _, vjp = torch.func.vjp(self.f, self.wf.get_params())
-        return vjp(v)[0]
+        _, jvp_out = torch.func.jvp(self.f, (self.wf.get_params(),), (ov,))
+        return vjp(jvp_out)[0]
 
 
 def energy_single_p_mode(h_t, P):
@@ -97,13 +98,10 @@ if __name__ == "__main__":
 
 
             qmetr = S(f, wf)
-            ov = torch.ones(wf.n_param, device=device, dtype=dtype)
-            ov2 = torch.ones(wf.n_param, device=device, dtype=dtype)
+            ov = torch.randn(wf.n_param, device=device, dtype=dtype)
 
-            _, jvp_out = torch.func.jvp(f, (wf.get_params(),), (ov,))
-
-            ic(torch.allclose(qmetr @ jvp_out, (block.OK.T.conj() @ block.OK) @ ov2))
-            exit()
+            ic(torch.allclose(qmetr @ ov, (block.OK.T.conj() @ block.OK) @ ov))
+            # exit()
             # x0 = torch.randn(wf.n_param, device=device, dtype=dtype)
             # ic(kernel @ (kernel @ x0))
             # cg(kernel, epsbar, x0)
