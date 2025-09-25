@@ -209,3 +209,5 @@ __marimo__/
 *.vscode
 *.png
 *.html
+*.csv
+*.jpg
