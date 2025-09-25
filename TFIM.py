@@ -29,30 +29,47 @@ class T():
         self.n_block = n_block
         self.diag_reg = diag_reg
 
-    def __matmul__(self, v):
         _, vjp = torch.func.vjp(self.f, self.wf.get_params())
-        _, jvp = torch.func.jvp(vjp, (self.wf.get_params(),), (v,))
+        _, vjpav = torch.func.vjp(self.fav, self.wf.get_params())
+        self.vjp = vjp
+        self.vjpav = vjpav
 
-        res = vjp(jvp)[0]/self.n_block
+        self.jvp = lambda v: torch.func.jvp(self.f, (self.wf.get_params(),), (v,))
+        self.jvpav = lambda v: torch.func.jvp(self.fav, (self.wf.get_params(),), (v,))
 
-        _, vjp = torch.func.vjp(self.fav, self.wf.get_params())
-        _, jvp = torch.func.jvp(vjp, (self.wf.get_params(),), (v,))
-        return res - vjp(jvp)[0] - self.diag_reg * v
+    def __matmul__(self, v):
+        vm = v.mean()
+
+        # 1st term (see our notes)
+        t1 = self.jvp(self.vjp(v)[0])[0] / self.n_block
+
+        # 2st term (see our notes)
+        t2 = self.jvp(self.vjpav(vm)[0])[0]
+
+        # 3st term (see our notes)
+        t3 = self.jvpav(self.vjp(v)[0])[0] / self.n_block
+
+        # 4st term (see our notes)
+        t4 = self.jvpav(self.vjpav(vm)[0])[0]
+
+        res = t1 - t2 - t3 + t4
+
+        return res + self.diag_reg * v
 
 class S():
-    def __init__(self, f, fav, wf, n_block, diag_reg=1e-4):
+    def __init__(self, f, fav, wf, Ns, diag_reg=1e-4):
         # f: the function used to define the variational derivatives on
         self.f = f
         self.fav = fav
         self.wf = wf
-        self.n_block = n_block
+        self.Ns = Ns
         self.diag_reg = diag_reg
 
     def __matmul__(self, v):
         _, jvp = torch.func.jvp(self.f, (self.wf.get_params(),), (v,))
         _, vjp = torch.func.vjp(self.f, self.wf.get_params())
 
-        res = vjp(jvp)[0]/self.n_block
+        res = vjp(jvp)[0]/self.Ns
 
         _, jvp = torch.func.jvp(self.fav, (self.wf.get_params(),), (v,))
         _, vjp = torch.func.vjp(self.fav, self.wf.get_params())
@@ -70,14 +87,14 @@ def ground_state_energy_per_site(h_t, N):
 
 if __name__ == "__main__":
     device = "cuda"
-    dtype = torch.float32
+    dtype = torch.double
 
     print(torch.__version__)
 
-    n_spins = 2**14  # spin sites
+    n_spins = 2**4  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**5  # samples / expval
+    n_block = 2**12  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
     eta = torch.tensor(0.01, device=device, dtype=dtype)  # learning rate
@@ -97,14 +114,14 @@ if __name__ == "__main__":
     dTh = torch.zeros(wf.n_param, device=wf.device, dtype=wf.dtype)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            # block.bsample_block(wf, n_res=8)
-            block.bsample_block_no_grad(wf, n_res=2)
+            block.bsample_block(wf, n_res=8)
+            # block.bsample_block_no_grad(wf, n_res=2)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5
 
-            # Okm = torch.mean(block.OK, dim=0)
-            # Okbar = (block.OK - Okm) / n_block**0.5
+            Okm = torch.mean(block.OK, dim=0)
+            Okbar = (block.OK - Okm) / n_block**0.5
             # Okm = None  # free memory
             # dTh = 2 * Okbar.conj().T @ epsbar
             # if n_block > wf.n_param:
@@ -120,25 +137,35 @@ if __name__ == "__main__":
             _, vjpav = torch.func.vjp(fav, wf.get_params())
 
 
-            qmetr = S(f, fav, wf, n_block)
+            qmetr = S(f, fav, wf, n_block, diag_reg=0)
+            kernel = T(f, fav, wf, n_block, diag_reg=0)
 
             # Smat = (block.OK.T.conj() @ block.OK)
-            # Smat = (Okbar.T.conj() @ Okbar)
             # Smat = Smat + 1e-4*torch.eye(Smat.shape[0], dtype=Smat.dtype, device=Smat.device)
 
             # Smat = torch.eye(Smat.shape[0], dtype=Smat.dtype, device=Smat.device)
 
-            # ov = torch.randn(wf.n_param, device=device, dtype=dtype)
-            # ic(qmetr @ ov - Smat @ ov)
-            # ic(torch.allclose(qmetr @ ov, Smat @ ov))
+            Smat = (Okbar.T.conj() @ Okbar)
+            Tmat = (Okbar @ Okbar.T.conj())
+            ovnp = torch.randn(wf.n_param, device=device, dtype=dtype)
+            ovnb = torch.randn(n_block, device=device, dtype=dtype)
+            ic(torch.allclose(qmetr @ ovnp, Smat @ ovnp))
+            ic(torch.allclose(kernel @ ovnb, Tmat @ ovnb))
+            continue
 
             # fimpl = fsmat(Okbar)
 
             dThn = vjp(block.EL)[0] / n_block - vjpav(Eav)[0]
-            x0 = dTh.clone()
-            x = cg(qmetr, dThn, x0, max_iter=1)
-            # ic(torch.norm(qmetr @ x - dThn))
-            dThn = x.clone()
+
+            # if n_block > wf.n_param:
+            # x0 = dThn.clone()
+            # x = cg(qmetr, dThn, x0, max_iter=8)
+            # else:
+            x0 = epsbar.clone()
+            y = cg(kernel, epsbar, x0, max_iter=8)
+            x = (vjp(y)[0] - vjpav(y.sum())[0])/n_block**0.5
+            
+            dThn = x
 
             wf.update_params(-eta * dThn)
             dTh = dThn
