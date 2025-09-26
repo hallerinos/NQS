@@ -86,7 +86,7 @@ def ground_state_energy_per_site(h_t, N):
     return - 1 / N * np.sum(energies_p_modes)
 
 if __name__ == "__main__":
-    device = "cpu"
+    device = "cuda"
     dtype = torch.double
 
     print(torch.__version__)
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     n_spins = 2**9  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**10  # samples / expval
+    n_block = 2**12  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
     eta = torch.tensor(0.01, device=device, dtype=dtype)  # learning rate
