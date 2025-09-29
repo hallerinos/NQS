@@ -11,8 +11,9 @@ import numpy as np
 from energies.TFIM import local_energy
 # torch.manual_seed(0)
 from torch import Tensor
-from linalg.cg import cg
+from linalg.cg import cg, bicgstab
 from linalg.kernels import S
+import linear_operator
 
 def energy_single_p_mode(h_t, P):
     return np.sqrt(1 + h_t**2 - 2 * h_t * np.cos(P))
@@ -29,10 +30,10 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**7  # spin sites
+    n_spins = 2**13  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**14  # samples / expval
+    n_block = 2**12  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
     eta = torch.tensor(0.01, device=device, dtype=dtype)  # learning rate
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     dTh = torch.zeros(wf.n_param, device=wf.device, dtype=wf.dtype)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block_no_grad(wf, n_res=4)
+            block.bsample_block_no_grad(wf, n_res=2)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5
@@ -67,7 +68,10 @@ if __name__ == "__main__":
 
             dThn = vjp(block.EL)[0] / n_block - vjpav(Eav)[0]
 
-            x = cg(qmetr, dThn, dTh, max_iter=64).detach()
+            # x = cg(qmetr, dThn, dTh, max_iter=8)
+            # ic((qmetr @ x - dThn).norm())
+            x = bicgstab(qmetr, dThn, dTh, max_iter=2)
+            # ic((qmetr @ x - dThn).norm())
             dThn = x  # next update step
 
             wf.update_params(-eta * dThn)
@@ -75,10 +79,14 @@ if __name__ == "__main__":
 
             E_var = torch.conj(epsbar) @ epsbar
             edens = Eav.detach().cpu().item()/n_spins
+
             Eavs[epoch] = edens
             epochbar.set_description(
                 f"E/N: {np.round(edens, decimals=4)}, \u03C3: {np.round(E_var.detach().cpu(), decimals=4)}"
             )
+            if edens != edens:
+                print("NaN encountered!")
+                break
     profiler.write_html('our_profiler.html')
     print(Eavs)
 

@@ -2,7 +2,6 @@ import torch
 from pyinstrument import Profiler
 from tqdm import trange
 
-
 # @torch.compile()
 def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
     xi = x0.clone()
@@ -24,9 +23,8 @@ def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
         pi = ri + bi * pi
     return xi
 
-
 def bicgstab(A, b: torch.tensor, x0=None, *,
-             rtol=1e-6, atol=1e-6, maxiter=int(1e4)):
+             rtol=1e-6, atol=1e-6, max_iter=int(1e4)):
     """
     BiCGSTAB solver for Ax = b.
 
@@ -42,7 +40,7 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
         Relative tolerance.
     atol : float, optional
         Absolute tolerance.
-    maxiter : int, optional
+    max_iter : int, optional
         Maximum iterations (default: 10 * len(b)).
     M : callable, optional
         Preconditioner operator: y = M(x).
@@ -54,7 +52,7 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
     x : torch.Tensor
         Approximate solution to Ax = b.
     info : int
-        0 = success, !0 = breakdown or maxiter reached.
+        0 = success, !0 = breakdown or max_iter reached.
     """
 
     
@@ -82,13 +80,13 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
     s = torch.empty_like(b)
     t = torch.empty_like(b)
 
-    if maxiter is None:
-        maxiter = len(b) * 100
+    if max_iter is None:
+        max_iter = len(b) * 100
 
     rhotol = torch.finfo(b.dtype).eps ** 2
     omegatol = rhotol
 
-    for iteration in range(maxiter):
+    for iteration in range(max_iter):
 
         rho_new = torch.dot(r_hat.conj(), r)
         if torch.abs(rho_new) < rhotol:
@@ -136,11 +134,11 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
 
         rho_old = rho_new
 
-    return x, "Max iterations reached"
+    return x
 
 
 if __name__ == "__main__":    
-    m, n, dtype = int(111), int(1111), torch.double
+    m, n, dtype = int(111), int(111), torch.double
     Ok = torch.randn((m, n), dtype=dtype)
     Ok = torch.where(abs(Ok) < 2, 0, Ok)
     Amat = (Ok.T.conj() @ Ok)
