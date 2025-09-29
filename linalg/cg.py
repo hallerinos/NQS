@@ -2,7 +2,7 @@ import torch
 from pyinstrument import Profiler
 from tqdm import trange
 
-# @torch.compile(dynamic=True, options={"trace.enabled":False})
+# @torch.compile()
 def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
     xi = x0.clone()
     axi = fwmm @ xi
