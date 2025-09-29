@@ -1,6 +1,7 @@
 import torch
 from tqdm import trange
 from ansatz.RBM import RBM
+from ansatz.MF import MF
 from ansatz.Jastrow import JST
 from vmc.iterator import MCBlock
 from icecream import ic
@@ -26,7 +27,7 @@ def ground_state_energy_per_site(h_t, N):
 
 if __name__ == "__main__":
     device = "cuda"
-    dtype = torch.float32
+    dtype = torch.complex64
 
     print(torch.__version__)
 
@@ -42,7 +43,8 @@ if __name__ == "__main__":
     ic(E_exact)
 
     # wf = JST(n_spins, dtype=dtype, device=device)
-    wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
+    # wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
+    wf = MF(n_spins, dtype=dtype, device=device)
     ic(n_epoch, n_block, n_spins, wf.n_param)
 
     Eavs = torch.zeros(n_epoch, dtype=dtype)
@@ -64,13 +66,15 @@ if __name__ == "__main__":
             fav = lambda *primals: vlogpsi(block.samples, *primals).mean()
             _, vjpav = torch.func.vjp(fav, wf.get_params())
 
-            qmetr = S(f, fav, wf, n_block, diag_reg=0)
+            qmetr = S(f, fav, wf, n_block)
 
             dThn = vjp(block.EL)[0] / n_block - vjpav(Eav)[0]
 
-            x = cg(qmetr, dThn, dTh, max_iter=8)
-            ic((qmetr @ x[0] - dThn).norm())
-            x = bicgstab(qmetr, dThn, dTh, max_iter=4)
+            # x = cg(qmetr, dThn, dTh, max_iter=8)
+            # ic((qmetr @ x[0] - dThn).norm())
+            x = bicgstab(qmetr, dThn, dTh, max_iter=32)
+            # ic((qmetr @ x[0]).norm())
+            # ic((dThn).norm())
             ic((qmetr @ x[0] - dThn).norm())
             dThn = x[0]  # next update step
 

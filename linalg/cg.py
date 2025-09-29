@@ -13,7 +13,7 @@ def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
         rinsq = ri.conj() @ ri
         ai = rinsq / (pi.conj() @ api).item()
         xi = xi + ai.item() * pi
-        rip = ri.clone()
+        # rip = ri.clone()
         ri = ri - ai.item() * api
         rinsqp = rinsq.clone()
         rinsq = ri.conj() @ ri
