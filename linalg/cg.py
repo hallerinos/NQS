@@ -17,11 +17,11 @@ def cg(fwmm, k: torch.tensor, x0: torch.tensor, max_iter=int(1e4), tol=1e-18):
         ri = ri - ai.item() * api
         rinsqp = rinsq.clone()
         rinsq = ri.conj() @ ri
-        if rinsq.item() < tol:
-            return xi
+        if abs(rinsq.item()) < tol:
+            return xi, "tol"
         bi = rinsq.item() / rinsqp.item()
         pi = ri + bi * pi
-    return xi
+    return xi, "max_iter"
 
 def bicgstab(A, b: torch.tensor, x0=None, *,
              rtol=1e-6, atol=1e-6, max_iter=int(1e4)):
@@ -134,7 +134,7 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
 
         rho_old = rho_new
 
-    return x
+    return x, "max_iter"
 
 
 if __name__ == "__main__":    

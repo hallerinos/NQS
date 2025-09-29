@@ -11,7 +11,7 @@ torch._dynamo.config.suppress_errors = True
 class MCBlock:
     def __init__(self, wf, n_block, local_energy=lambda x, y: 1):
         # self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
-        self.samples = 2.0*torch.randint(0, 2, (n_block, wf.n_spins), dtype=wf.dtype, device=wf.device) - 1.0
+        self.samples = (2.0*torch.randint(0, 2, (n_block, wf.n_spins), device=wf.device) - 1.0).to(wf.dtype)
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
 
