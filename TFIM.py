@@ -13,7 +13,6 @@ from energies.TFIM import local_energy
 from torch import Tensor
 from linalg.cg import cg, bicgstab
 from linalg.kernels import S
-import linear_operator
 
 def energy_single_p_mode(h_t, P):
     return np.sqrt(1 + h_t**2 - 2 * h_t * np.cos(P))
@@ -30,10 +29,10 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**4  # spin sites
+    n_spins = 2**8  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**10  # samples / expval
+    n_block = 2**14  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 10.0  # Zeeman interaction amplitude
     eta = 0.01  # learning rate
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     dTh = torch.zeros(wf.n_param, device=wf.device, dtype=wf.dtype)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block_no_grad(wf, n_res=16)
+            block.bsample_block_no_grad(wf, n_res=n_spins//4)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5
@@ -64,14 +63,14 @@ if __name__ == "__main__":
             fav = lambda *primals: vlogpsi(block.samples, *primals).mean()
             _, vjpav = torch.func.vjp(fav, wf.get_params())
 
-            qmetr = S(f, fav, wf, n_block, diag_reg=0)
+            qmetr = S(f, fav, wf, n_block, diag_reg=1e-3)
 
             dThn = vjp(block.EL)[0] / n_block - vjpav(Eav)[0]
 
-            x = cg(qmetr, dThn, dTh, max_iter=8)
-            ic((qmetr @ x[0] - dThn).norm())
+            # x = cg(qmetr, dThn, dTh, max_iter=8)
+            # ic((qmetr @ x[0] - dThn).norm())
             x = bicgstab(qmetr, dThn, dTh, max_iter=4)
-            ic((qmetr @ x[0] - dThn).norm())
+            # ic((qmetr @ x[0] - dThn).norm())
             dThn = x[0]  # next update step
 
             wf.update_params(-eta * dThn)
