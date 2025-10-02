@@ -28,13 +28,13 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**4  # spin sites
+    n_spins = 2**6  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**12  # samples / expval
+    n_block = 2**14  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
-    eta = 0.001  # learning rate
+    eta = 1e-12  # learning rate
 
     E_exact = ground_state_energy_per_site(g, n_spins)
     ic(E_exact)
@@ -43,6 +43,8 @@ if __name__ == "__main__":
     # wf = RBM(n_spins, n_hidden, dtype=dtype, device=device)
     wf = FFNN(n_spins, n_hidden, 1).to(device, dtype)
     ic(n_epoch, n_block, n_spins, wf.n_param)
+
+    x = (2*torch.randint(0, 2, (n_block, n_spins)) - 1).to(device, dtype)
 
     Eavs = torch.zeros(n_epoch, dtype=dtype)
     E_var = 1.0

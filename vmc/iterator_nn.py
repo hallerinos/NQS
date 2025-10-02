@@ -43,26 +43,6 @@ class MCBlock:
             self.OK[n, :] = wf.gradients.conj()
             # ic(torch.norm(self.OK[n, :] - check))
 
-    # @torch.compile(fullgraph=False)
-    def bsample_block(self, wf, n_res=4):
-        # bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
-        # blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
-        # # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
-        # vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
-
-        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different')
-        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
-        # vmgrad = torch.vmap(lambda x: derivatives(wf, x))
-        vmagrad = torch.vmap(lambda x: autograd(wf, x))
-
-        for _ in range(n_res):
-            self.samples = bdraw_next(self.samples)
-        self.EL = blocal_energy(self.samples)
-
-        self.OK = vmagrad(self.samples)
-        # self.OK = wf.gradients
-
-    # @torch.compile(fullgraph=False)
     def bsample_block_no_grad(self, wf, n_res=4):
         # bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
         # blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
@@ -70,13 +50,13 @@ class MCBlock:
         # vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
 
         bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different')
-        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
         # vmgrad = torch.vmap(lambda x: derivatives(wf, x))
         # vmagrad = torch.vmap(lambda x: autograd(wf, x))
 
-        for _ in range(n_res):
-            self.samples = bdraw_next(self.samples)
-        self.EL = blocal_energy(self.samples)
+        with torch.no_grad():
+            for _ in range(n_res):
+                self.samples = bdraw_next(self.samples)
+            self.EL = self.local_energy(wf, self.samples)
 
         # self.OK = vmagrad(self.samples)
         # self.OK = wf.gradients

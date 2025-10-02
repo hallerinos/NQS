@@ -37,6 +37,13 @@ class FFNN(nn.Module):
         out = self.stack(x)
         return x @ self.bs + torch.sum((2*out.cosh_()).log_(), dim=-1)
 
+    def probratio(self, x_nom, x_denom):
+        x_diff = x_nom - x_denom
+        f_nom = self.stack(x_nom)
+        f_denom = self.stack(x_denom)
+        log_diff = torch.log(torch.cosh(f_nom)) - torch.log(torch.cosh(f_denom))
+        return torch.exp(self.bs @ x_diff + torch.sum(log_diff))
+
     # inplace update of parameters
     def add_(self, new):
         for (old, new) in zip(self.state_dict().items(), new.items()):
