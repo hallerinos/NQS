@@ -54,3 +54,7 @@ class sampler:
             )
             if crit < tol and nacc > 1e-1 and step > min_iter:
                 break
+
+    def sample(self, n_res=4, n_flip=1):
+        nacc = self.draw_next(n_res=n_res, n_flip=n_flip)
+        self.EL = self.local_energy(self.model, self.samples)

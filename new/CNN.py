@@ -5,7 +5,7 @@ from torch.func import vjp, functional_call
 
 
 class FFNN(nn.Module):
-    def __init__(self, n_spins, n_hidden, n_layer=1, require_grad=False):
+    def __init__(self, n_spins, n_hidden, n_layer=1):
         super().__init__()
         self.n_spins = n_spins
         self.n_hidden = n_hidden
@@ -24,16 +24,8 @@ class FFNN(nn.Module):
                 nn.Linear(n_hidden, n_hidden)
             )
 
-        # set require_grad
-        self.set_require_grad(require_grad)
-
         # compute number of parameters
         self.n_param = sum(p.numel() for p in self.parameters())
-
-    # disable the require_grad flag
-    def set_require_grad(self, require_grad):
-        for name, param in self.state_dict().items():
-            param.requires_grad_(require_grad)
 
     # returns logprob
     def forward(self, x):
