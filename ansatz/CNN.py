@@ -20,9 +20,9 @@ class FFNN(nn.Module):
             self.stack.append(
                 nn.Linear(n_hidden, n_hidden)
             )
+        self.bs = nn.Parameter(torch.rand(n_spins))
         self.set_require_grad(require_grad)
         self.n_param = sum(p.numel() for p in self.parameters())
-        self.bs = nn.Parameter(torch.rand(n_spins))
 
     # disable the require_grad flag
     def set_require_grad(self, require_grad):
@@ -52,12 +52,11 @@ class FFNN(nn.Module):
 if __name__ == "__main__":
     torch.set_default_device('cuda')
     model = FFNN(4, 8, 1)
-    x = 2.0*torch.randint(0, 2, (10, 4)) - 1.0
-    c = 1.0*torch.randint(0, 2, (10,8))
+    x = 2.0*torch.randint(0, 2, (4,)) - 1.0
 
     f = lambda primals: functional_call(model, primals, x)
     vjpout = vjp(f, model.state_dict())
-    vjpfn_out = vjpout[1](torch.tensor(1.0))[0]
-    ic(model.state_dict().items())
-    model.add_(vjpfn_out)
-    ic(model.state_dict().items())
+    vjpfn_out = vjpout[1](torch.tensor(1))[0]
+    grad_out = torch.func.grad(f)(model.state_dict())
+    for (vp,gp) in zip(vjpfn_out.items(), grad_out.items()):
+        ic(torch.allclose(vp[1], gp[1]))
