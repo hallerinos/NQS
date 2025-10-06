@@ -166,54 +166,22 @@ def bicgstab(A, b: torch.tensor, x0=None, *,
 
 if __name__ == "__main__":    
     m, n, dtype = int(111), int(111), torch.double
-    Ok = torch.randn((m, n), dtype=dtype)
-    Ok = torch.where(abs(Ok) < 2, 0, Ok)
-    Amat = (Ok.T.conj() @ Ok)
-    Amat = Amat + 1e-8*torch.eye(Amat.shape[0], dtype=Ok.dtype)
-    # Amat = Amat + Amat.T.conj()
-    A = lambda x: Amat @ x
-    b = torch.randn((Amat.shape[1]), dtype=Amat.dtype)
 
-    # print('Using torch.linalg.solve')
-    # bar1 = trange(4)
-    # with Profiler(interval=0.1) as profiler:
-    #     for _ in bar1:
-    #         x0 = torch.randn((Amat.shape[1]), dtype=Amat.dtype)
-    #         x = torch.linalg.solve(Amat.to_dense(), b.to_dense())
-    #         bar1.set_description(
-    #             f"res: {torch.norm(Amat.matmul(x) - b)}"
-    #         )
+    keys = '123'
+    Adict = OrderedDict()
+    for key in keys:
+        Ok = torch.randn((m, n), dtype=dtype)
+        Ok = torch.where(abs(Ok) < 2, 0, Ok)
+        Amat = (Ok.T.conj() @ Ok)
+        Amat = Amat + 1e-8*torch.eye(Amat.shape[0], dtype=Ok.dtype)
+        Adict[key] = Amat
 
-    # print('Starting CG using matrix-vector multiplication')
-    # bar2 = trange(4)
-    # with Profiler(interval=0.1) as profiler:
-    #     for _ in bar2:
-    #         x0 = torch.randn((Amat.shape[1], 1), dtype=Amat.dtype).to_sparse()
-    #         x = cg(Amat.mm, b, x0)
-    #         bar2.set_description(
-    #             f"res: {torch.norm(Amat.matmul(x) - b)}"
-    #         )
+    def Adict():
+        def __init__(Adict):
+            self.dict = Adict
 
-
-    print('Starting CG using regularized vec-vec multiplication')
-    bar3 = trange(4)
-    with Profiler(interval=0.1) as profiler:
-        for _ in bar3:
-            x0 = torch.randn((Amat.shape[1]), dtype=Amat.dtype)
-            x = cg(Amat, b, x0)
-            bar3.set_description(
-                f"res: {torch.norm(Amat @ x - b)}"
-            )
-
-   
-
-    print('Using BiCGSTAB: A is a torch tensor')
-    bar4 = trange(4)
-    with Profiler(interval=0.1) as profiler:
-        for _ in bar4:
-            x0 = torch.randn((Amat.shape[1]), dtype=Amat.dtype)
-            x, info = bicgstab(Amat, b, x0)
-            bar4.set_description(
-                f"res: {torch.norm(Amat @ x - b)}"
-            )
-        print(info)
+        def __matmul__(x):
+            res = OrderedDict()
+            for key in x.keys():
+                res[key] = self.dict[key] @ x[key]
+            return res
