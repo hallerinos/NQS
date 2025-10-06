@@ -12,7 +12,7 @@ class FFNN(nn.Module):
         self.n_layer = n_layer
 
         # initialize the layers
-        self.input_bias = nn.Parameter(torch.rand(n_spins))
+        self.input_bias = nn.Parameter(torch.randn(n_spins))
         self.stack = nn.Sequential(
             nn.Linear(n_spins, n_hidden)
         )
@@ -27,10 +27,20 @@ class FFNN(nn.Module):
         # compute number of parameters
         self.n_param = sum(p.numel() for p in self.parameters())
 
+        self.normalize()
+
+    def normalize(self):
+        for key in self.state_dict().keys():
+            if key == 'input_bias':
+                norm = self.input_bias.norm()
+                self.state_dict()[key].div_(norm)
+            else:
+                self.state_dict()[key].copy_(torch.randn(self.state_dict()[key].shape)/norm)
+
     # returns logprob
     def forward(self, x):
         out = self.stack(x)
-        return x @ self.input_bias + torch.sum((2*out.cosh_()).log_(), dim=-1)
+        return x @ self.input_bias + torch.sum(torch.log(2*torch.cosh(out)), dim=-1)
 
     # returns probability ratio p_nom(x_nom) / p_denom(x_denom) given two configurations x_nom, x_denom
     def probratio(self, x_nom, x_denom):

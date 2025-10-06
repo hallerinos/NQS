@@ -11,7 +11,7 @@ class sampler:
         self.EL = torch.zeros(n_block).to(torch.get_default_device(), torch.get_default_dtype())
         self.local_energy = local_energy
 
-    # @torch.compile(fullgraph=False)
+    # @torch.compile()
     def draw_trial(self, n_flip=1):
         spin_vector_flipped = self.samples.clone()
         # Generate all random indices at once
@@ -21,7 +21,7 @@ class sampler:
         return spin_vector_flipped
 
     # draws new configurations, returns acceptance rate
-    # @torch.compile(fullgraph=False)
+    # @torch.compile()
     def draw_next(self, n_res=1, n_flip=1):
         # create all random numbers at once
         rand_nums = torch.rand((n_res, self.n_block), device=torch.get_default_device(), dtype=torch.get_default_dtype())
@@ -32,7 +32,7 @@ class sampler:
             self.samples[accepted] = y[accepted]
         return accepted.to(torch.int).sum() / self.n_block
 
-    # @torch.compile(fullgraph=False)
+    # @torch.compile()
     def warmup(self, n_res=4, n_flip=1, tol=1e-4, min_iter=2**6, max_iter=2**10):
         E_prev = 0
         tbar = tqdm.trange(max_iter)
@@ -55,6 +55,7 @@ class sampler:
             if crit < tol and nacc > 1e-1 and step > min_iter:
                 break
 
+    # @torch.compile()
     def sample(self, n_res=4, n_flip=1):
         nacc = self.draw_next(n_res=n_res, n_flip=n_flip)
         self.EL = self.local_energy(self.model, self.samples)

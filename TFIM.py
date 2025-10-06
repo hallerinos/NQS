@@ -25,7 +25,8 @@ def ground_state_energy_per_site(h_t, N):
 
 if __name__ == "__main__":
     device = "cuda"
-    dtype = torch.float32
+    dtype = torch.double
+    # torch.manual_seed(0)
 
     print(torch.__version__)
 
@@ -34,8 +35,8 @@ if __name__ == "__main__":
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
     n_block = 2**14  # samples / expval
     n_epoch = 2**10  # variational iterations
-    g = 10.0  # Zeeman interaction amplitude
-    eta = 0.01  # learning rate
+    g = 1.0  # Zeeman interaction amplitude
+    eta = 0.001  # learning rate
 
     E_exact = ground_state_energy_per_site(g, n_spins)
     ic(E_exact)
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     dTh = torch.zeros(wf.n_param, device=wf.device, dtype=wf.dtype)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block_no_grad(wf, n_res=n_spins//4)
+            block.bsample_block_no_grad(wf, n_res=16)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5
@@ -67,10 +68,10 @@ if __name__ == "__main__":
 
             dThn = vjp(block.EL)[0] / n_block - vjpav(Eav)[0]
 
-            # x = cg(qmetr, dThn, dTh, max_iter=8)
+            x = cg(qmetr, dThn, dTh, max_iter=4)
             # ic((qmetr @ x[0] - dThn).norm())
-            x = bicgstab(qmetr, dThn, dTh, max_iter=4)
-            # ic((qmetr @ x[0] - dThn).norm())
+            # x = bicgstab(qmetr, dThn, dTh, max_iter=4)
+            # residual = (qmetr @ x[0] - dThn).norm()
             dThn = x[0]  # next update step
 
             wf.update_params(-eta * dThn)

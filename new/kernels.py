@@ -26,6 +26,4 @@ class S():
             res[key].add_(-res2[key])
             res[key].add_(-self.diag_reg * v[key])
 
-        # resvals = torch.cat([val.flatten() for val in resdict.values()])
-
         return res

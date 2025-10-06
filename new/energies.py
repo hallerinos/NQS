@@ -1,6 +1,5 @@
 import torch
 
-# @torch.compile(fullgraph=False)
 def TFIM(wf, spin_vector: torch.Tensor, J:torch.NumberType=-1, h:torch.NumberType=-1) -> torch.Tensor:
     interactions = torch.einsum('ij,ij->i', spin_vector[:, 1:], spin_vector[:,:-1])
     interactions += torch.einsum('ij,ij->i', spin_vector[:,[0]], spin_vector[:,[-1]])

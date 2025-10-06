@@ -69,7 +69,7 @@ class MCBlock:
         # # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
         # vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
 
-        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different')
+        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=1), randomness='different')
         blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
         # vmgrad = torch.vmap(lambda x: derivatives(wf, x))
         # vmagrad = torch.vmap(lambda x: autograd(wf, x))
