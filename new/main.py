@@ -11,7 +11,7 @@ if __name__ == "__main__":
     torch.set_default_device('cuda')
     torch.manual_seed(0)
 
-    n_spin, Ns, eta = 2**6, 2**14, 0.01
+    n_spin, Ns, eta = 2**8, 2**14, 0.001
 
     model = FFNN(n_spin, n_spin)
     model.requires_grad_(False)
@@ -19,10 +19,10 @@ if __name__ == "__main__":
     ic(n_spin, Ns, model.n_param)
 
     sampler = sampler(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=-1, h=-1))
-    sampler.warmup(n_res=n_spin//4, max_iter=2**10)
+    sampler.warmup(n_res=n_spin//16, max_iter=2**10)
     tbar = tqdm.trange(2**8)
     for epoch in tbar:
-        sampler.sample(n_res=n_spin//4)
+        sampler.sample(n_res=n_spin//16)
 
         Eav = sampler.EL.mean()
         epsbar = (sampler.EL - Eav) / Ns**0.5
