@@ -12,7 +12,7 @@ from copy import copy, deepcopy
 
 if __name__ == "__main__":
     torch.set_default_dtype(torch.double)
-    torch.set_default_device('cuda')
+    torch.set_default_device('cpu')
     torch.manual_seed(0)
 
     n_spin, Ns, eta = 2**4, 2**8, 0.001
@@ -49,8 +49,8 @@ if __name__ == "__main__":
             # sampler.model.state_dict()[k].add_(-eta*dThd[k])
 
         x = cg(qmetr, dThd, dThp, max_iter=32)
-        for key in x[0].keys():
-            print(((qmetr @ x[0])[key] - dThd[key]).norm())
+        # for key in x[0].keys():
+        #     print(((qmetr @ x[0])[key] - dThd[key]).norm())
         dThd = x[0]
 
         for (k, v) in dThd.items():
