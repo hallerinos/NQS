@@ -13,3 +13,25 @@ def TFIM(wf, spin_vector: torch.Tensor, J:torch.NumberType=-1, h:torch.NumberTyp
         zeeman_term.add_(torch.exp(lnwf1 - lnwf0))
 
     return J * interactions + h * zeeman_term
+
+def TFIM_rot(wf, spin_vector: torch.Tensor, J:torch.NumberType=-1, h:torch.NumberType=-1) -> torch.Tensor:
+    zeeman_term = 0.5*(torch.sum(spin_vector, dim=-1) + spin_vector.shape[1])
+
+    interactions = torch.zeros_like(zeeman_term)
+    lnwf0 = wf(spin_vector)
+    for i in range(spin_vector.shape[1]-1):
+        val = spin_vector[:, i]*spin_vector[:, i+1]
+        spin_vector_f = spin_vector.clone()
+        spin_vector_f[:, i] *= -1
+        spin_vector_f[:, i+1] *= -1
+        lnwf1 = wf(spin_vector_f)
+        interactions.add_(val*torch.exp(lnwf1 - lnwf0))
+    val = spin_vector[:, -1]*spin_vector[:, 0]
+    spin_vector_f = spin_vector.clone()
+    spin_vector_f[:, -1] *= -1
+    spin_vector_f[:, 0] *= -1
+    lnwf1 = wf(spin_vector_f)
+    interactions.add_(val*torch.exp(lnwf1 - lnwf0))
+
+
+    return J * interactions + h * zeeman_term

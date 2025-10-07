@@ -3,7 +3,7 @@ from models.FFNN import FFNN
 from models.Transformer import SDPA
 import torch
 from icecream import ic
-from local_energies.TFIM import TFIM
+from local_energies.TFIM import TFIM, TFIM_rot
 from sampler.MCMC import MCMC
 import tqdm
 import numpy as np
@@ -13,18 +13,18 @@ from linalg.conjugate_gradient import cg
 from copy import copy, deepcopy
 
 if __name__ == "__main__":
-    n_epoch = 2**12
+    n_epoch = 2**14
     n_spin = 2**4
-    Ns = 2**12
+    Ns = 2**10
     eta = 1e-2
 
-    model = RNN(n_spin, n_spin)
-    # model = FFNN(n_spin, n_spin)
+    # model = RNN(n_spin, n_spin)
+    model = FFNN(n_spin, n_spin, device='cpu')
     model.requires_grad_(False)  # less memory and better performance
 
     ic(n_spin, Ns, model.n_param)
 
-    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=-1, h=-1))
+    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM_rot(model, x, J=-0.1, h=-1))
 
     tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             dThd[key] = vjpres[key]/Ns - vjpavres[key]
 
         # solve S x = dThd
-        x = cg(metric_tensor, dThd, dThp, max_iter=4)
+        x = cg(metric_tensor, dThd, dThp, max_iter=16)
         # ic(metric_tensor.compute_residual(x[0], dThd))  # residual = norm(S x[0] - dThd)
 
         # update parameters
