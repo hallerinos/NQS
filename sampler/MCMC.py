@@ -27,7 +27,7 @@ class MCMC:
         rand_nums = torch.rand((n_res, self.n_block), device=self.model.device, dtype=self.model.dtype)
         for i in range(n_res):
             y = self.draw_trial(n_flip=n_flip)
-            # probratio = self.model.probratio(y, self.samples)
+            # probratio = self.model.probratio(y, self.samples)  # slightly faster, but requires probratio
             lnwf0 = self.model(self.samples)
             lnwf1 = self.model(y)
             probratio = torch.exp(lnwf1 - lnwf0)
