@@ -12,13 +12,12 @@ class FFNN(nn.Module):
         self.n_layer = n_layer
 
         # initialize the layers
-        self.input_bias = nn.Parameter(torch.randn(n_spins))
         self.stack = nn.Sequential(
             nn.Linear(n_spins, n_hidden)
         )
         for _ in range(n_layer-1):
             self.stack.append(
-                nn.Sigmoid()
+                nn.Tanh()
             )
             self.stack.append(
                 nn.Linear(n_hidden, n_hidden)
@@ -27,20 +26,10 @@ class FFNN(nn.Module):
         # compute number of parameters
         self.n_param = sum(p.numel() for p in self.parameters())
 
-        self.normalize()
-
-    def normalize(self):
-        for key in self.state_dict().keys():
-            if key == 'input_bias':
-                norm = self.input_bias.norm()
-                self.state_dict()[key].div_(norm)
-            else:
-                self.state_dict()[key].copy_(torch.randn(self.state_dict()[key].shape)/norm)
-
     # returns logprob
     def forward(self, x):
         out = self.stack(x)
-        return x @ self.input_bias + torch.sum(torch.log(2*torch.cosh(out)), dim=-1)
+        return torch.sum(out.cosh_().log_(), dim=-1)
 
     # returns probability ratio p_nom(x_nom) / p_denom(x_denom) given two configurations x_nom, x_denom
     def probratio(self, x_nom, x_denom):
@@ -48,7 +37,7 @@ class FFNN(nn.Module):
         f_nom = self.stack(x_nom)
         f_denom = self.stack(x_denom)
         log_diff = f_nom.cosh_().log_() - f_denom.cosh_().log_()
-        return torch.exp(x_diff @ self.input_bias + torch.sum(log_diff, dim=-1))
+        return torch.exp(torch.sum(log_diff, dim=-1))
 
     # define logprob given input x evaluated for parameters params
     def logprob(self, params, x):

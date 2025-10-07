@@ -1,4 +1,5 @@
 from CNN import FFNN
+from attention import SDPA
 import torch
 from icecream import ic
 from energies import TFIM
@@ -15,9 +16,9 @@ if __name__ == "__main__":
     torch.set_default_device('cuda')
     # torch.manual_seed(0)
 
-    n_spin = 2**8
+    n_spin = 2**4
     Ns = 128*n_spin
-    eta = 1e-3
+    eta = 0.01
 
     model = FFNN(n_spin, n_spin)
     model.requires_grad_(False)
@@ -55,6 +56,7 @@ if __name__ == "__main__":
         #     nk = (qmetr @ x[0])[key] - dThd[key]
         #     residual += nk.flatten().conj() @ nk.flatten()
         # residual = residual**(0.5)
+        # ic(residual)
         dThd = x[0]
 
         for (k, v) in dThd.items():

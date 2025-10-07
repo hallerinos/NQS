@@ -27,10 +27,10 @@ class sampler:
         rand_nums = torch.rand((n_res, self.n_block), device=torch.get_default_device(), dtype=torch.get_default_dtype())
         for i in range(n_res):
             y = self.draw_trial(n_flip=n_flip)
-            probratio = self.model.probratio(y, self.samples)
-            # lnwf0 = self.model(self.samples)
-            # lnwf1 = self.model(y)
-            # probratio = torch.exp(lnwf1 - lnwf0)
+            # probratio = self.model.probratio(y, self.samples)
+            lnwf0 = self.model(self.samples)
+            lnwf1 = self.model(y)
+            probratio = torch.exp(lnwf1 - lnwf0)
             accepted = (rand_nums[i].real <= (probratio * probratio.conj()).real)
             self.samples[accepted] = y[accepted]
         return accepted.to(torch.int).sum() / self.n_block
