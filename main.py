@@ -1,3 +1,4 @@
+from models.RNN import RNN
 from models.FFNN import FFNN
 from models.Transformer import SDPA
 import torch
@@ -14,10 +15,11 @@ from copy import copy, deepcopy
 if __name__ == "__main__":
     n_epoch = 2**12
     n_spin = 2**4
-    Ns = 2**16
+    Ns = 2**12
     eta = 1e-2
 
-    model = FFNN(n_spin, n_spin)
+    model = RNN(n_spin, n_spin)
+    # model = FFNN(n_spin, n_spin)
     model.requires_grad_(False)  # less memory and better performance
 
     ic(n_spin, Ns, model.n_param)
@@ -60,7 +62,7 @@ if __name__ == "__main__":
         dThd = x[0]
         for (k, v) in dThd.items():
             sampler.model.state_dict()[k].add_(-eta*dThd[k])
-        dThp = deepcopy(dThd)
+        dThp = copy(dThd)
 
         # update progress bar
         Edens = Eav / n_spin

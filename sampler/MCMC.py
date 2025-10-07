@@ -7,7 +7,7 @@ class MCMC:
     def __init__(self, model, n_block, local_energy=lambda x, y: 1):
         self.model = model
         self.n_block = n_block
-        self.samples = (2.0*torch.randint(0, 2, (n_block, model.n_spins)) - 1.0).to(self.model.device, self.model.dtype)
+        self.samples = (2.0*torch.randint(0, 2, (n_block, model.n_spin)) - 1.0).to(self.model.device, self.model.dtype)
         self.EL = torch.zeros(n_block).to(self.model.device, self.model.dtype)
         self.local_energy = local_energy
 

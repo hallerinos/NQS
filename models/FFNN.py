@@ -1,21 +1,19 @@
 from torch import nn
 import torch
 from icecream import ic
-from torch.func import vjp, functional_call
-
 
 class FFNN(nn.Module):
-    def __init__(self, n_spins, n_hidden, n_layer=1, dtype=torch.float64, device='cuda'):
+    def __init__(self, n_spin, n_hidden, n_layer=1, dtype=torch.float64, device='cuda'):
         super().__init__()
         self.device = device
         self.dtype = dtype
-        self.n_spins = n_spins
+        self.n_spin = n_spin
         self.n_hidden = n_hidden
         self.n_layer = n_layer
 
         # initialize the layers
         self.stack = nn.Sequential(
-            nn.Linear(n_spins, n_hidden, dtype=self.dtype, device=self.device)
+            nn.Linear(n_spin, n_hidden, dtype=self.dtype, device=self.device)
         )
         for _ in range(n_layer-1):
             self.stack.append(
