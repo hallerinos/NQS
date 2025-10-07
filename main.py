@@ -12,21 +12,19 @@ from linalg.conjugate_gradient import cg
 from copy import copy, deepcopy
 
 if __name__ == "__main__":
-    torch.set_default_dtype(torch.double)
-    torch.set_default_device('cuda')
-    # torch.manual_seed(0)
-
-    n_spin = 2**8
-    Ns = 128*n_spin
-    eta = 0.01
+    n_epoch = 2**12
+    n_spin = 2**4
+    Ns = 2**16
+    eta = 1e-2
 
     model = FFNN(n_spin, n_spin)
-    model.requires_grad_(False)
+    model.requires_grad_(False)  # less memory and better performance
 
     ic(n_spin, Ns, model.n_param)
 
     sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=-1, h=-1))
-    tbar = tqdm.trange(2**12)
+
+    tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
     for epoch in tbar:
         # sample new set of configurations
@@ -55,7 +53,7 @@ if __name__ == "__main__":
             dThd[key] = vjpres[key]/Ns - vjpavres[key]
 
         # solve S x = dThd
-        x = cg(metric_tensor, dThd, dThp, max_iter=2)
+        x = cg(metric_tensor, dThd, dThp, max_iter=4)
         # ic(metric_tensor.compute_residual(x[0], dThd))  # residual = norm(S x[0] - dThd)
 
         # update parameters
