@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     n_spin = 2**8
     Ns = 128*n_spin
-    eta = 1/n_spin
+    eta = 1e-3
 
     model = FFNN(n_spin, n_spin)
     model.requires_grad_(False)
