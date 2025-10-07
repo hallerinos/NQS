@@ -4,6 +4,7 @@ from models.Transformer import SDPA
 import torch
 from icecream import ic
 from local_energies.TFIM import TFIM, TFIM_rot
+from local_energies.references import ground_state_energy_per_site
 from sampler.MCMC import MCMC
 import tqdm
 import numpy as np
@@ -14,17 +15,23 @@ from copy import copy, deepcopy
 
 if __name__ == "__main__":
     n_epoch = 2**14
-    n_spin = 2**4
-    Ns = 2**10
-    eta = 1e-2
+    n_spin = 2**2
+    Ns = 2**12
+    eta = 0.01
+    g = 1
+    # torch.manual_seed(0)
 
     # model = RNN(n_spin, n_spin)
-    model = FFNN(n_spin, n_spin, device='cpu')
+    model = FFNN(n_spin, 2*n_spin, device='cpu', dtype=torch.double)
     model.requires_grad_(False)  # less memory and better performance
+
+
+    E_exact = ground_state_energy_per_site(g, n_spin)
+    ic(E_exact)
 
     ic(n_spin, Ns, model.n_param)
 
-    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM_rot(model, x, J=-0.1, h=-1))
+    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM_rot(model, x, J=-1, h=-g))
 
     tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
@@ -47,7 +54,7 @@ if __name__ == "__main__":
         vjpavres = vjpav(Eav)[0]
 
         # initialize metric tensor
-        metric_tensor = S(f, fav, sampler.model, Ns)
+        metric_tensor = S(f, fav, sampler.model, Ns, diag_reg=1e-3)
 
         # compute Euclidean gradient
         dThd = OrderedDict()
@@ -55,11 +62,11 @@ if __name__ == "__main__":
             dThd[key] = vjpres[key]/Ns - vjpavres[key]
 
         # solve S x = dThd
-        x = cg(metric_tensor, dThd, dThp, max_iter=16)
+        # x = cg(metric_tensor, dThd, dThp, max_iter=128)
         # ic(metric_tensor.compute_residual(x[0], dThd))  # residual = norm(S x[0] - dThd)
 
         # update parameters
-        dThd = x[0]
+        # dThd = x[0]
         for (k, v) in dThd.items():
             sampler.model.state_dict()[k].add_(-eta*dThd[k])
         dThp = copy(dThd)

@@ -33,7 +33,6 @@ class FFNN(nn.Module):
 
     # returns probability ratio p_nom(x_nom) / p_denom(x_denom) given two configurations x_nom, x_denom
     def probratio(self, x_nom, x_denom):
-        x_diff = x_nom - x_denom
         f_nom = self.stack(x_nom)
         f_denom = self.stack(x_denom)
         log_diff = f_nom.cosh_().log_() - f_denom.cosh_().log_()
