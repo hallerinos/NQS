@@ -18,16 +18,16 @@ if __name__ == "__main__":
 
     n_spin = 2**4
     Ns = 128*n_spin
-    eta = 0.01
+    eta = 0.001
 
-    model = FFNN(n_spin, n_spin)
+    model = FFNN(n_spin, 64)
     model.requires_grad_(False)
 
     ic(n_spin, Ns, model.n_param)
 
     sampler = sampler(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=-1, h=-1))
     # sampler.warmup(n_res=16, max_iter=2**10)
-    tbar = tqdm.trange(2**10)
+    tbar = tqdm.trange(2**12)
     dThp = copy(model.state_dict())
     for epoch in tbar:
         sampler.sample(n_res=n_spin)
@@ -65,5 +65,5 @@ if __name__ == "__main__":
 
         Edens = Eav / n_spin
         tbar.set_description(
-                f"E/N: {np.round(Edens.cpu(), decimals=4)}, \u03C3: {np.round(Evar.cpu(), decimals=4)}"
+                f"E/N: {np.round(Edens.cpu(), decimals=4)}, \u03C3\u00B2/N: {np.round(Evar.cpu()/n_spin, decimals=4)}"
             )
