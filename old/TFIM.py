@@ -30,10 +30,10 @@ if __name__ == "__main__":
 
     print(torch.__version__)
 
-    n_spins = 2**8  # spin sites
+    n_spins = 2**4  # spin sites
     alpha = 1
     n_hidden = int(alpha * n_spins)  # neurons in hidden layer
-    n_block = 2**14  # samples / expval
+    n_block = 2**11  # samples / expval
     n_epoch = 2**10  # variational iterations
     g = 1.0  # Zeeman interaction amplitude
     eta = 0.001  # learning rate
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     dTh = torch.zeros(wf.n_param, device=wf.device, dtype=wf.dtype)
     with Profiler(interval=0.1) as profiler:
         for epoch in epochbar:
-            block.bsample_block_no_grad(wf, n_res=16)
+            block.bsample_block_no_grad(wf, n_res=n_spins)
 
             Eav = torch.mean(block.EL, dim=0)
             epsbar = (block.EL - Eav) / n_block**0.5

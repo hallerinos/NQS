@@ -2,7 +2,7 @@ import torch
 from collections import OrderedDict
 
 class S():
-    def __init__(self, f, fav, model, Ns, diag_reg=1e-4):
+    def __init__(self, f, fav, model, Ns, diag_reg=0.0):
         # f: the function used to define the variational derivatives on
         self.f = f
         self.fav = fav
@@ -27,3 +27,11 @@ class S():
             res[key].add_(-self.diag_reg * v[key])
 
         return res
+
+    def compute_residual(self, x, rhs):
+        residual = 0.0
+        for key in x.keys():
+            nk = self.__matmul__(x)[key] - rhs[key]
+            residual += nk.flatten().conj() @ nk.flatten()
+        residual = residual**(0.5)
+        return residual

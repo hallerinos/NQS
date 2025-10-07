@@ -3,7 +3,7 @@ from icecream import ic
 import tqdm
 import numpy as np
 
-class sampler:
+class MCMC:
     def __init__(self, model, n_block, local_energy=lambda x, y: 1):
         self.model = model
         self.n_block = n_block

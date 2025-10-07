@@ -36,17 +36,16 @@ def cg(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18):
             pi[key] = ri[key] + bi * pi[key]
     return xi, "max_iter"
 
-class Adict():
-    def __init__(self, Adict):
-        self.dict = Adict
+if __name__ == "__main__":
+    class Adict():
+        def __init__(self, Adict):
+            self.dict = Adict
 
-    def __matmul__(self, x):
-        res = OrderedDict()
-        for key in x.keys():
-            res[key] = self.dict[key] @ x[key]
-        return res
-
-if __name__ == "__main__":    
+        def __matmul__(self, x):
+            res = OrderedDict()
+            for key in x.keys():
+                res[key] = self.dict[key] @ x[key]
+            return res
     m, n, dtype = int(111), int(111), torch.double
 
     keys = '12'
