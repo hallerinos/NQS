@@ -36,13 +36,16 @@ class RBM(torch.nn.Module):
             )
 
             self.b += b
+            self.c += c
+            self.W += W
+            # self.b.add_(b)
+            # self.c.add_(c)
+            # self.W.add_(W)
             # renorm = self.b.norm()
             # self.b /= renorm
-            self.c += c
             # self.c /= renorm
-            self.W += W
             # self.W /= renorm
-            self.reset_gattr()
+            # self.reset_gattr()
 
     # @torch.compile(fullgraph=False)
     def reset_gattr(self):
@@ -50,7 +53,7 @@ class RBM(torch.nn.Module):
         self.c.grad = torch.zeros_like(self.c)
         self.W.grad = torch.zeros_like(self.W)
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def assign_derivatives(self, x):
         theta = self.c + self.W @ x
         Ob = x
@@ -61,7 +64,7 @@ class RBM(torch.nn.Module):
         self.Oc = Oc
         self.OW = OW
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def bassign_derivatives(self, x):
         theta = self.c + torch.einsum('ij,kj->ki', self.W, x)
         Ob = x
@@ -73,31 +76,25 @@ class RBM(torch.nn.Module):
     def assign_gradients(self):
         self.gradients = torch.cat((self.b.grad, self.c.grad, self.W.grad.flatten()))
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def prob(self, x):
         return torch.exp(self.b @ x) * torch.prod(2 * torch.cosh(self.c + self.W @ x))
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def prob_(self, x):
         return torch.exp(self.b.conj() @ x) * torch.prod(
             2 * torch.cosh(self.c.conj() + self.W.conj() @ x)
         )
 
-    @torch.compile(fullgraph=False)
-    def logprob(self, x):
+    # @torch.compile(fullgraph=False)
+    def logprob_(self, x):
         return self.b @ x + torch.sum(torch.log(2 * torch.cosh(self.c + self.W @ x)))
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def logprob(self, x, bcw):
         return bcw[:self.n_spins] @ x + torch.sum(torch.log(2 * torch.cosh(bcw[self.n_spins:self.n_spins+self.n_hidden] + bcw[self.n_spins+self.n_hidden:].reshape((self.n_hidden, self.n_spins)) @ x)))
 
-    @torch.compile(fullgraph=False)
-    def logprob_(self, x):
-        return self.b.conj() @ x + torch.sum(
-            torch.log(2 * torch.cosh(self.c.conj() + self.W.conj() @ x))
-        )
-
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def probratio(self, x_nom, x_denom):
         x_diff = x_nom - x_denom
         phi_nom = self.c + self.W @ x_nom
@@ -105,9 +102,9 @@ class RBM(torch.nn.Module):
         phi_denom = self.c + self.W @ x_denom
         f_denom = torch.cosh(phi_denom)
         log_diff = torch.log(f_nom) - torch.log(f_denom)
-        return torch.exp(self.b @ x_diff + torch.sum(log_diff))
+        return torch.exp(x_diff @ self.b + torch.sum(log_diff))
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def probratio_(self, x_nom, x_denom):
         c_tp = self.c.repeat(len(x_nom), 1).T
         x_diff = x_nom - x_denom
@@ -120,7 +117,7 @@ class RBM(torch.nn.Module):
         val = val.detach()  # without this line we have a memory leak ???
         return torch.exp(val)
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 def derivatives(wf: RBM, x):
     theta = wf.c + wf.W @ x
     Ob = x
@@ -129,7 +126,7 @@ def derivatives(wf: RBM, x):
 
     return torch.cat((Ob, Oc, OW.flatten()))
 
-@torch.compile(fullgraph=False)
+# @torch.compile(fullgraph=False)
 def autograd(wf: RBM, x):
     dth = torch.func.grad(lambda bcw: wf.logprob(x, bcw).real)(wf.get_params())
 

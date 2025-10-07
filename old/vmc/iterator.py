@@ -10,8 +10,8 @@ torch._dynamo.config.suppress_errors = True
 # @torch.compile(fullgraph=False)
 class MCBlock:
     def __init__(self, wf, n_block, local_energy=lambda x, y: 1):
-        self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
-        self.samples = 2.0*torch.randint(0, 2, (n_block, wf.n_spins), dtype=wf.dtype, device=wf.device) - 1.0
+        # self.OK = torch.zeros(n_block, wf.n_param, dtype=wf.dtype, device=wf.device)
+        self.samples = (2.0*torch.randint(0, 2, (n_block, wf.n_spins), device=wf.device) - 1.0).to(wf.dtype)
         self.EL = torch.zeros(n_block, dtype=wf.dtype, device=wf.device)
         self.local_energy = local_energy
 
@@ -43,12 +43,17 @@ class MCBlock:
             self.OK[n, :] = wf.gradients.conj()
             # ic(torch.norm(self.OK[n, :] - check))
 
-    @torch.compile(fullgraph=False)
+    # @torch.compile(fullgraph=False)
     def bsample_block(self, wf, n_res=4):
-        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
-        blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
-        # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
-        vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
+        # bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
+        # blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
+        # # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
+        # vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
+
+        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different')
+        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
+        # vmgrad = torch.vmap(lambda x: derivatives(wf, x))
+        vmagrad = torch.vmap(lambda x: autograd(wf, x))
 
         for _ in range(n_res):
             self.samples = bdraw_next(self.samples)
@@ -58,9 +63,30 @@ class MCBlock:
         # self.OK = wf.gradients
 
     # @torch.compile(fullgraph=False)
+    def bsample_block_no_grad(self, wf, n_res=4):
+        # bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=2**4), randomness='different'))
+        # blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
+        # # vmgrad = torch.compile(torch.vmap(lambda x: derivatives(wf, x)))
+        # vmagrad = torch.compile(torch.vmap(lambda x: autograd(wf, x)))
+
+        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_flip=1, n_iter=1), randomness='different')
+        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
+        # vmgrad = torch.vmap(lambda x: derivatives(wf, x))
+        # vmagrad = torch.vmap(lambda x: autograd(wf, x))
+
+        for _ in range(n_res):
+            self.samples = bdraw_next(self.samples)
+        self.EL = blocal_energy(self.samples)
+
+        # self.OK = vmagrad(self.samples)
+        # self.OK = wf.gradients
+
+    # @torch.compile(fullgraph=False)
     def warmup(self, wf, tol=1e-2, verbose=False):
-        bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_iter=2**4), randomness='different'))
-        blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
+        # bdraw_next = torch.compile(torch.vmap(lambda x: draw_next(wf, x, n_iter=2**4), randomness='different'))
+        # blocal_energy = torch.compile(torch.vmap(lambda x: self.local_energy(wf, x)))
+        bdraw_next = torch.vmap(lambda x: draw_next(wf, x, n_iter=2**4), randomness='different')
+        blocal_energy = torch.vmap(lambda x: self.local_energy(wf, x))
 
         pEav = torch.mean(self.EL)
         Eav = torch.mean(self.EL)

@@ -208,6 +208,15 @@ __marimo__/
 
 *.vscode
 *.png
-*.html
-*.csv
 *.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.svg
+*.mp4
+*.mp3
+*.avi
+*.csv
+*.html
+*.out
