@@ -5,7 +5,11 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 
 # @torch.compile()
-def cg(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18):
+def cg(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18, compute_residual=False):
+    normk = 0.0
+    for key in k.keys():
+        normk += k[key].norm()
+    crit = tol*normk
     xi = copy(x0)
     axi = fwmm @ xi
     pi = OrderedDict()
@@ -29,12 +33,15 @@ def cg(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18):
         rinsq = 0
         for key in k.keys():
             rinsq += ri[key].flatten().conj() @ ri[key].flatten()
-        if abs(rinsq.item()) < tol:
+        if abs(rinsq.item()) < crit:
             return xi, "tol"
         bi = rinsq / rinsqp
         for key in k.keys():
             pi[key] = ri[key] + bi * pi[key]
-    return xi, "max_iter"
+    residual = 0
+    if compute_residual:
+        residual = fwmm.compute_residual(x, k)  # residual = norm(S x[0] - dThd)
+    return xi, residual
 
 if __name__ == "__main__":
     class Adict():
@@ -46,21 +53,21 @@ if __name__ == "__main__":
             for key in x.keys():
                 res[key] = self.dict[key] @ x[key]
             return res
-    m, n, dtype = int(111), int(111), torch.double
+    m, n, dtype, device = int(1111), int(1111), torch.double, 'cuda'
 
     keys = '12'
     ad = OrderedDict()
     b = OrderedDict()
     x0 = OrderedDict()
     for key in keys:
-        Ok = torch.randn((m, n), dtype=dtype)
+        Ok = torch.randn((m, n), dtype=dtype, device=device)
         Ok = torch.where(abs(Ok) < 2, 0, Ok)
         Amat = (Ok.T.conj() @ Ok)
-        Amat = Amat + 1e-8*torch.eye(Amat.shape[0], dtype=Ok.dtype)
+        Amat = Amat + 1e-8*torch.eye(Amat.shape[0], dtype=Ok.dtype, device=device)
         ad[key] = Amat
 
-        b[key] = torch.randn((m,), dtype=dtype)
-        x0[key] = torch.randn((m,), dtype=dtype)
+        b[key] = torch.randn((m,), dtype=dtype, device=device)
+        x0[key] = torch.randn((m,), dtype=dtype, device=device)
 
     amatd = Adict(ad)
 

@@ -26,12 +26,12 @@ class FFNN(nn.Module):
         # compute number of parameters
         self.n_param = sum(p.numel() for p in self.parameters())
 
-    # returns logprob
+    # evaluates log(wavefunction)
     def forward(self, x):
         out = self.stack(x)
         return torch.sum(out.cosh_().log_(), dim=-1)
 
-    # returns probability ratio p_nom(x_nom) / p_denom(x_denom) given two configurations x_nom, x_denom
+    # returns probability ratio log(wavefunction(x_nom)) / log(wavefunction(x_denom))
     def probratio(self, x_nom, x_denom):
         f_nom = self.stack(x_nom)
         f_denom = self.stack(x_denom)
