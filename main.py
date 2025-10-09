@@ -1,5 +1,6 @@
 from models.RNN import RNN
 from models.FFNN import FFNN
+from models.CNN import CNN
 from models.Transformer import SDPA
 import torch
 from icecream import ic
@@ -60,6 +61,7 @@ if __name__ == "__main__":
         dEdTh = OrderedDict()
         for key in vjpres.keys():
             dEdTh[key] = vjpres[key]/Ns - vjpavres[key]
+        dTh = dEdTh
 
         # solve the SR equation S dTh = dEdTh
         dTh, _ = cg(metric_tensor, dEdTh, dThp, max_iter=4)
@@ -70,7 +72,6 @@ if __name__ == "__main__":
         dThp = copy(dTh)
 
         # update progress bar
-        Edens = Eav
         tbar.set_description(
-                f"E/N: {np.round(Edens.cpu(), decimals=4)}, \u03C3\u00B2/N: {np.round(Evar.cpu(), decimals=4)}"
+                f"E/N: {Eav.cpu()/n_spin:.6e}, \u03C3\u00B2/N: {Evar.cpu()/n_spin:.2e}, eta: {eta:.3e}"
             )
