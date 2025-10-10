@@ -12,7 +12,8 @@ class MPS(nn.Module):
         self.d_local = d_local
 
         tens = torch.randn((n_spin, d_bond, d_local, d_bond), dtype=dtype, device=device)
-        self.stack = torch.nn.Parameter(tens/tens.norm())
+        renorm = sum([tens[i,:].norm()**2.0 for i in range(n_spin)])
+        self.stack = torch.nn.Parameter(tens/renorm**(0.5))
 
         # compute number of parameters
         self.n_param = sum(p.numel() for p in self.parameters())
