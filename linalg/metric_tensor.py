@@ -24,7 +24,7 @@ class S():
         for key in res.keys():
             res[key].div_(self.Ns)
             res[key].add_(-res2[key])
-            res[key].add_(-self.diag_reg * v[key])
+            res[key].add_(self.diag_reg * v[key])
 
         return res
 
