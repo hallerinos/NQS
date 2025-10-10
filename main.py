@@ -17,9 +17,11 @@ from copy import copy, deepcopy
 
 if __name__ == "__main__":
     n_epoch = 2**14
-    n_spin = 12
-    Ns = 2**12
-    eta = 0.01
+    n_spin = 2**6
+    Ns = 2**14
+    eta = 1e-3
+    diag_reg = 1e-3
+    adaptive = 1
     g = 1
     # torch.manual_seed(0)
 
@@ -29,7 +31,7 @@ if __name__ == "__main__":
 
     ic(n_spin, Ns, model.n_param)
 
-    sampler = MCMC(model, Ns, local_energy=lambda model, x: Heisenberg(model, x, J=[-1.0,-1.0,-0.0], B=[-0.0,-0.0,-0.0]))
+    sampler = MCMC(model, Ns, local_energy=lambda model, x: Heisenberg(model, x, J=[1.0,1.0,1.0], B=[-0.0,-0.0,-0.0]))
 
     tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
@@ -52,7 +54,8 @@ if __name__ == "__main__":
         vjpavres = vjpav(Eav)[0]
 
         # initialize metric tensor
-        metric_tensor = S(f, fav, sampler.model, Ns, diag_reg=1e-3)
+        diag_reg = max(adaptive * diag_reg, 1e-16)
+        metric_tensor = S(f, fav, sampler.model, Ns, diag_reg=diag_reg)
 
         # compute Euclidean gradient dE/dTheta
         dEdTh = OrderedDict()
@@ -61,14 +64,17 @@ if __name__ == "__main__":
         dTh = dEdTh
 
         # solve the SR equation S dTh = dEdTh
-        dTh, _ = cg(metric_tensor, dEdTh, dThp, tol=1e-4, max_iter=4)
+        dTh, _ = cg(metric_tensor, dEdTh, dThp, tol=1e-4, max_iter=8)
 
         # update parameters
         for (k, v) in dTh.items():
-            sampler.model.state_dict()[k].add_(-eta*dTh[k])
+            if dTh[k].norm() < 1e2:
+                sampler.model.state_dict()[k].add_(-eta*dTh[k])
+            elif dEdTh[k].norm() < 1e2:
+                sampler.model.state_dict()[k].add_(-eta*dEdTh[k])
         dThp = copy(dTh)
 
         # update progress bar
         tbar.set_description(
-                f"E/N: {Eav.cpu()/n_spin:.6e}, \u03C3\u00B2/N: {Evar.cpu()/n_spin:.2e}, eta: {eta:.3e}"
+                f"E/N: {Eav.cpu()/n_spin:.6e}, \u03C3\u00B2/N: {Evar.cpu()/n_spin:.2e}, diag_reg: {diag_reg:.2e}"
             )
