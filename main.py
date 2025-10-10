@@ -1,11 +1,10 @@
 from models.RNN import RNN
 from models.FFNN import FFNN
 from models.CNN import CNN
-from models.Transformer import SDPA
 import torch
 from icecream import ic
 from local_energies.Heisenberg import Heisenberg
-from local_energies.TFIM import TFIM
+from local_energies.TFIM import TFIM, TFIM_y, TFIM_rot
 from local_energies.references import ground_state_energy_per_site
 from sampler.MCMC import MCMC
 import tqdm
@@ -17,10 +16,10 @@ from copy import copy, deepcopy
 
 if __name__ == "__main__":
     n_epoch = 2**14
-    n_spin = 2**6
+    n_spin = 2**4
     Ns = 2**14
-    eta = 1e-3
-    diag_reg = 1e-3
+    eta = 1e-2
+    diag_reg = 1e-2
     adaptive = 1
     g = 1
     # torch.manual_seed(0)
@@ -31,7 +30,8 @@ if __name__ == "__main__":
 
     ic(n_spin, Ns, model.n_param)
 
-    sampler = MCMC(model, Ns, local_energy=lambda model, x: Heisenberg(model, x, J=[1.0,1.0,1.0], B=[-0.0,-0.0,-0.0]))
+    # sampler = MCMC(model, Ns, local_energy=lambda model, x: Heisenberg(model, x, J=[1.0,1.0,1.0], B=[-0.0,-0.0,-0.0]))
+    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=0, h=-g))
 
     tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
@@ -61,6 +61,7 @@ if __name__ == "__main__":
         dEdTh = OrderedDict()
         for key in vjpres.keys():
             dEdTh[key] = vjpres[key]/Ns - vjpavres[key]
+            # dEdTh[key].copy_(0.5*dEdTh[key].add_(dEdTh[key].conj()))
         dTh = dEdTh
 
         # solve the SR equation S dTh = dEdTh
@@ -73,6 +74,21 @@ if __name__ == "__main__":
             elif dEdTh[k].norm() < 1e2:
                 sampler.model.state_dict()[k].add_(-eta*dEdTh[k])
         dThp = copy(dTh)
+
+        lnwf0 = sampler.model(sampler.samples)
+        
+        sx_exp = torch.zeros(sampler.samples.size(-1))
+        sy_exp = torch.zeros(sampler.samples.size(-1))
+        sz_exp = torch.zeros(sampler.samples.size(-1))
+        for i in range(sampler.samples.size(-1)):
+            spin_vector_f = sampler.samples.clone()
+            spin_vector_f[:, i] *= -1
+            lnwf1 = sampler.model(spin_vector_f)
+            val = torch.exp(lnwf1 - lnwf0)
+            sx_exp[i] = val.mean()
+            sy_exp[i] = (-1j*val*(sampler.samples[:,i])).mean()
+            sz_exp[i] = sampler.samples[:,i].mean()
+        # ic(sx_exp, sy_exp, sz_exp)
 
         # update progress bar
         tbar.set_description(
