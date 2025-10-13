@@ -1,6 +1,7 @@
 import torch
 from collections import OrderedDict
 
+# NOTE: conjugations missing in the VJP's
 class S():
     def __init__(self, f, fav, model, Ns, diag_reg=0.0):
         # f: the function used to define the variational derivatives on
