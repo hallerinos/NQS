@@ -1,4 +1,5 @@
 import torch
+import warnings
 from pyinstrument import Profiler
 from tqdm import trange
 from collections import OrderedDict
@@ -45,11 +46,11 @@ def cg(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18, comp
     return xi, residual
 
 
-def bicgstab(fwmm, k: OrderedDict, x0: OrderedDict,
-             max_iter=int(1e4), tol=1e-6, compute_residual=False):
+def bicgstab(fwmm, k: OrderedDict, x0: OrderedDict, max_iter=int(1e4), tol=1e-18, compute_residual=False):
     
     dtype = next(iter(k.values())).dtype
     device = next(iter(k.values())).device
+
     # helper functions
     def block_dot(a: OrderedDict, b: OrderedDict):
         """Computes global inner product ⟨a, b⟩ as a single torch scalar."""
@@ -68,14 +69,15 @@ def bicgstab(fwmm, k: OrderedDict, x0: OrderedDict,
     
     xi = copy(x0)
 
+    # initial residual
     # r = k - A @ x
     r = OrderedDict()
     Axi = fwmm @ xi
     for key in k.keys():
         r[key] = k[key] - Axi[key]
     r_norm = block_norm(r)
-    if r_norm.item() <= tol:
-        return xi, 0
+    if (torch.abs(r_norm)).item() <= tol:
+        return xi, r_norm.item() 
 
     r_hat = copy(r)
     
@@ -89,58 +91,71 @@ def bicgstab(fwmm, k: OrderedDict, x0: OrderedDict,
 
         rho_new = block_dot(r_hat, r)
         if (torch.abs(rho_new)).item() < eps:
-            return xi, -1
+            warnings.warn("Breakdown detected: rho → 0 (division instability).")
+            return xi, None
 
         if iteration == 0:
             for key in k.keys():
                 p[key] = r[key].clone()
         else:
             if (torch.abs(omega)).item() < eps:
-                return xi, -2  
+                warnings.warn("Breakdown detected: omega → 0 (stagnation).")
+                return xi, None
             beta = (rho_new / rho_old) * (alpha / omega)
             # p = r + beta * (p - omega * v)
             for key in k.keys():
                 p[key] = r[key] + beta * (p[key] - omega * v[key])
 
-        # phat = p # artifact of preconditioning, so far no need for phat
         v = fwmm @ p
         denom = block_dot(r_hat, v)
         if (torch.abs(denom)).item() < eps:
-            return xi, -3
+            warnings.warn("Breakdown detected: denominator → 0 in alpha.")
+            return xi, None
         alpha = rho_new / denom
-
-        # if torch.isnan(rho_new) or torch.isnan(alpha) or torch.isnan(omega):
-        #     return x, "NaN encountered"
 
         # s = r - alpha * v
         s = OrderedDict({key: r[key] - alpha * v[key] for key in k.keys()})
         s_norm = block_norm(s)
-        if s_norm.item() <= tol:
+        if (torch.abs(s_norm)).item() <= tol:
             # x += alpha * p
             for key in k.keys():
                 xi[key] = xi[key] + alpha * p[key]         
-            return xi, 0
+            return xi, s_norm.item()
 
         t = fwmm @ s
         denom_t = block_dot(t, t)
         if (torch.abs(denom_t)).item() < eps:
-            return xi, -4
+            warnings.warn("Breakdown detected: denominator → 0 in omega.")
+            return xi, None
         omega = block_dot(t, s) / denom_t
 
-        # x and s updates
+        
+        # x += alpha * p + omega * s
+        # r = s - omega * t
         for key in k.keys():
             xi[key] = xi[key] + alpha * p[key] + omega * s[key]
             r[key] = s[key] - omega * t[key]
 
         r_norm = block_norm(r)
-        if r_norm.item() <= tol:
-            return xi, 0
+        if not torch.isfinite(r_norm):
+            warnings.warn("Numerical instability: NaN or Inf in residual.")
+            return xi, None
 
-        rho_old = rho_new.clone()
 
-        # if compute_residual    #TODO
+        if (torch.abs(r_norm)).item() <= tol:
+            return xi, r_norm.item()
 
-    return xi, 1
+        rho_old = rho_new
+
+        residuals = OrderedDict()
+        glob_res = None
+        if compute_residual:
+            res = fwmm @ xi
+            for key in k.keys():
+                residuals[key] = res[key] - k[key]
+            glob_res = block_norm(residuals)
+
+    return xi, glob_res
 
 
 if __name__ == "__main__":
@@ -153,9 +168,9 @@ if __name__ == "__main__":
             for key in x.keys():
                 res[key] = self.dict[key] @ x[key]
             return res
-    m, n, dtype, device = int(1111), int(1111), torch.double, 'cpu'
+    m, n, dtype, device = int(1111), int(1111), torch.complex128, 'cpu' # why is it so sensitive to the dtype?
 
-    keys = '12'
+    keys = '1'
     num_iters = 1000
     ad = OrderedDict()
     b = OrderedDict()
@@ -173,20 +188,19 @@ if __name__ == "__main__":
     amatd = Adict(ad)
 
     x = cg(amatd, b, x0, max_iter=num_iters)
-    ic('CG done')
+    ic('CG done. The global residual is:')
     res = amatd @ x[0]
+    norm = torch.tensor(0.0, dtype=dtype, device=device)
     for key in b.keys():
-        residuals = res[key] - b[key]
-        ic(key)
-        ic(residuals)
-        ic(torch.norm(residuals))
+        norm += (res[key] - b[key]).norm()**2
+    glob_res = torch.sqrt(norm)
+    ic(glob_res)
+       
+
+    x = bicgstab(amatd, b, x0, max_iter=num_iters, compute_residual=True)
+    ic('BiCGStab done. The global residual is:')
+    ic(x[1])
 
     
-    x = bicgstab(amatd, b, x0, max_iter=num_iters)
-    ic('BiCGStab done')
-    res = amatd @ x[0]
-    for key in b.keys():
-        residuals = res[key] - b[key]
-        ic(key)
-        ic(residuals)
-        ic(torch.norm(residuals))
+    
+    
