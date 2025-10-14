@@ -1,3 +1,4 @@
+from models.Transformer import ViT
 from models.RNN import RNN
 from models.FFNN import FFNN
 from models.CNN import CNN
@@ -17,25 +18,31 @@ from copy import copy, deepcopy
 if __name__ == "__main__":
     n_epoch = 2**14
     n_spin = 2**4
-    Ns = 2**14
+    Ns = 2**15
     eta = 1e-2
-    diag_reg = 1e-2
+    diag_reg = 1e-3
     adaptive = 1
     g = 1
     # torch.manual_seed(0)
 
     # model = RNN(n_spin, n_spin)
-    model = FFNN(n_spin, n_spin, device='cuda', dtype=torch.complex64)
+    # model = FFNN(n_spin, n_spin, device='cuda', dtype=torch.complex64)
+    model = ViT(Ns, n_spin, 8, 4, dtype=torch.float32)
     model.requires_grad_(False)  # less memory and better performance
 
     ic(n_spin, Ns, model.n_param)
 
     # sampler = MCMC(model, Ns, local_energy=lambda model, x: Heisenberg(model, x, J=[1.0,1.0,1.0], B=[-0.0,-0.0,-0.0]))
-    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=0, h=-g))
+    sampler = MCMC(model, Ns, local_energy=lambda model, x: TFIM(model, x, J=1, h=-g))
+    E_exact = ground_state_energy_per_site(g, n_spin)
+    ic(E_exact)
 
     tbar = tqdm.trange(n_epoch)
     dThp = copy(model.state_dict())
+    # sampler.warmup(max_iter=256)
     for epoch in tbar:
+        if ((epoch+1) % (2**10)) == 0:
+            eta = eta/10.0
         # sample new set of configurations
         sampler.sample(n_res=n_spin)
 
@@ -65,7 +72,7 @@ if __name__ == "__main__":
         dTh = dEdTh
 
         # solve the SR equation S dTh = dEdTh
-        dTh, _ = cg(metric_tensor, dEdTh, dThp, tol=1e-4, max_iter=8)
+        dTh, _ = cg(metric_tensor, dEdTh, dThp, tol=1e-4, max_iter=128)
 
         # update parameters
         for (k, v) in dTh.items():
@@ -77,20 +84,20 @@ if __name__ == "__main__":
 
         lnwf0 = sampler.model(sampler.samples)
         
-        sx_exp = torch.zeros(sampler.samples.size(-1))
-        sy_exp = torch.zeros(sampler.samples.size(-1))
-        sz_exp = torch.zeros(sampler.samples.size(-1))
+        sx_exp = torch.zeros(sampler.samples.size(-1), dtype=sampler.samples.dtype)
+        sy_exp = torch.zeros(sampler.samples.size(-1), dtype=sampler.samples.dtype)
+        sz_exp = torch.zeros(sampler.samples.size(-1), dtype=sampler.samples.dtype)
         for i in range(sampler.samples.size(-1)):
             spin_vector_f = sampler.samples.clone()
             spin_vector_f[:, i] *= -1
             lnwf1 = sampler.model(spin_vector_f)
             val = torch.exp(lnwf1 - lnwf0)
             sx_exp[i] = val.mean()
-            sy_exp[i] = (-1j*val*(sampler.samples[:,i])).mean()
+            sy_exp[i] = (-1j*val*(sampler.samples[:,i])).mean().real
             sz_exp[i] = sampler.samples[:,i].mean()
         # ic(sx_exp, sy_exp, sz_exp)
 
         # update progress bar
         tbar.set_description(
-                f"E/N: {Eav.cpu()/n_spin:.6e}, \u03C3\u00B2/N: {Evar.cpu()/n_spin:.2e}, diag_reg: {diag_reg:.2e}"
+                f"E/N: {Eav.real.cpu()/n_spin:.6}, \u03C3\u00B2/N: {Evar.real.cpu()/n_spin:.1e}, diag_reg: {diag_reg:.1e}, eta: {eta:.1e}"
             )
