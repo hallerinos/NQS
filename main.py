@@ -17,7 +17,7 @@ from copy import copy, deepcopy
 
 if __name__ == "__main__":
     n_epoch = 2**14
-    n_spin = 2**4
+    n_spin = 2**6
     Ns = 2**15
     eta = 1e-2
     diag_reg = 1e-3
@@ -26,8 +26,8 @@ if __name__ == "__main__":
     # torch.manual_seed(0)
 
     # model = RNN(n_spin, n_spin)
-    # model = FFNN(n_spin, n_spin, device='cuda', dtype=torch.complex64)
-    model = ViT(Ns, n_spin, 8, 4, dtype=torch.float32)
+    model = FFNN(n_spin, 4*n_spin, device='cuda', dtype=torch.float32)
+    # model = ViT(Ns, n_spin, 8, 4, dtype=torch.float32)
     model.requires_grad_(False)  # less memory and better performance
 
     ic(n_spin, Ns, model.n_param)
